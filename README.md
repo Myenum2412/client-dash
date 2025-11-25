@@ -1,7 +1,5 @@
 # ProUltima Task Manager PWA
-
 📌 Overview
-
 Proultima is a full-stack Project Management System built for engineering companies to manage projects, teams, job flows, transmittals, takeoffs, and client communications.
 This application is built with Next.js, TypeScript, Tailwind CSS, Node.js, Supabase (Auth + DB + Storage) and is designed for real-world industrial usage.
 
