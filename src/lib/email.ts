@@ -3066,6 +3066,64 @@ export async function sendLowBalanceAlertEmail(
   });
 }
 
+/**
+ * Send insufficient balance alert email to admins
+ * Notifies admins when staff attempts cash out but balance is below ₹500
+ */
+export async function sendInsufficientBalanceAlertEmail(
+  staffName: string,
+  attemptedAmount: number,
+  branchName: string,
+  currentBalance: number,
+  adminEmails: string[]
+): Promise<{ success: boolean; messageId?: string }> {
+  const subject = `Insufficient Balance Alert: ${branchName} Branch`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Insufficient Balance Alert</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #f8d7da; border: 1px solid #dc3545; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+        <h2 style="color: #721c24; margin-top: 0;">⚠️ Insufficient Balance Alert</h2>
+      </div>
+      
+      <p>Dear Admin,</p>
+      
+      <p>A staff member attempted to make a cash out transaction, but the branch balance is insufficient.</p>
+      
+      <div style="background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Staff Name:</strong> ${staffName}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Branch:</strong> ${branchName}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Attempted Cash Out Amount:</strong> ₹${attemptedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Current Balance:</strong> ₹${currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Threshold:</strong> ₹500.00</p>
+      </div>
+      
+      <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Action Required:</strong></p>
+        <p style="margin: 5px 0 0 0;">The ${branchName} branch balance is low (below ₹500). Please add opening account balance to maintain sufficient funds.</p>
+        <p style="margin: 5px 0 0 0;">You can update the opening balance from the Admin Settings page.</p>
+      </div>
+      
+      <p style="margin-top: 30px;">Best regards,<br><strong>ProUltima System</strong></p>
+      
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+      <p style="color: #666; font-size: 12px;">This is an automated notification. Please do not reply to this email.</p>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: adminEmails,
+    subject,
+    html,
+  });
+}
+
 export async function sendRepeatedTaskEmail(
   recipientEmail: string,
   recipientName: string,

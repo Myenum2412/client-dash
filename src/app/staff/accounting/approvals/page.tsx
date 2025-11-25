@@ -482,7 +482,10 @@ export default function AccountingApprovalsPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => openProofPreview(transaction)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openProofPreview(transaction);
+                              }}
                             >
                               <Eye className="mr-2 h-4 w-4" /> View ({transaction.attachment_urls.length})
                             </Button>
@@ -497,12 +500,15 @@ export default function AccountingApprovalsPage() {
                           {transaction.verification_notes?.length ? transaction.verification_notes : '—'}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               size="sm"
                               variant="default"
                               disabled={transaction.verification_status !== 'pending'}
-                              onClick={() => openActionDialog('approve', transaction)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openActionDialog('approve', transaction);
+                              }}
                             >
                               <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
                             </Button>
@@ -510,7 +516,10 @@ export default function AccountingApprovalsPage() {
                               size="sm"
                               variant="destructive"
                               disabled={transaction.verification_status !== 'pending'}
-                              onClick={() => openActionDialog('reject', transaction)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openActionDialog('reject', transaction);
+                              }}
                             >
                               <XCircle className="mr-2 h-4 w-4" /> Reject
                             </Button>

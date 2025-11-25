@@ -40,7 +40,7 @@ interface AddCashTransactionDialogProps {
 
 export function AddCashTransactionDialog({ branch, open: externalOpen, onOpenChange }: AddCashTransactionDialogProps) {
   const { user } = useAuth();
-  const { expenseCategories, createTransaction, isCreating } = useCashTransactions(branch, undefined, undefined, {
+  const { expenseCategories, createTransaction, isCreating, summary } = useCashTransactions(branch, undefined, undefined, {
     autoApprove: false,
     includePending: true,
   });
@@ -85,6 +85,39 @@ export function AddCashTransactionDialog({ branch, open: externalOpen, onOpenCha
     if (!amount || amount <= 0) {
       toast.error('Please enter a valid amount');
       return;
+    }
+
+    // Check balance validation for cash out transactions
+    if (transactionType === 'cash_out') {
+      const currentBalance = summary?.closing_balance || 0;
+      
+      // Check if current balance is below 500 before allowing cash out
+      if (currentBalance < 500) {
+        toast.error('Balance is insufficient, please try again after top up balance');
+        
+        // Send email to admins about insufficient balance
+        try {
+          const staffName = user?.name || 'Staff Member';
+          const response = await fetch('/api/email/send-insufficient-balance-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              staffName,
+              amount: formData.cash_out,
+              branch,
+              currentBalance,
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to send insufficient balance alert email');
+          }
+        } catch (emailError) {
+          console.error('Error sending insufficient balance alert email:', emailError);
+        }
+        
+        return;
+      }
     }
 
     try {
