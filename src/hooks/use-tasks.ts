@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getCurrentUser } from '@/lib/auth';
 import { useAuth } from '@/contexts/auth-context';
 import { broadcastDataUpdate, subscribeToBroadcast } from '@/lib/broadcast-sync';
+import { adjustWeekendDateToString } from '@/lib/task-utils';
 // Email functions removed - now using instant API calls instead of queue
 import type { Task, TaskStatus, TaskPriority, TaskRepeatConfig } from '@/types';
 
@@ -494,8 +495,8 @@ export function useTasks() {
             assigned_team_ids: [], // No teams for individual clones
             status: formData.status,
             priority: formData.priority,
-            due_date: formData.due_date,
-            start_date: formData.start_date,
+            due_date: adjustWeekendDateToString(formData.due_date),
+            start_date: adjustWeekendDateToString(formData.start_date),
             is_repeated: formData.is_repeated || false,
             repeat_config: formData.repeat_config,
             support_files: formData.support_files || [],
@@ -760,8 +761,8 @@ export function useTasks() {
             assigned_team_ids: formData.assigned_team_ids || [],
             status: formData.status,
             priority: formData.priority,
-            due_date: formData.due_date,
-            start_date: formData.start_date,
+            due_date: adjustWeekendDateToString(formData.due_date),
+            start_date: adjustWeekendDateToString(formData.start_date),
             is_repeated: formData.is_repeated || false,
             repeat_config: formData.repeat_config,
             support_files: formData.support_files || [],

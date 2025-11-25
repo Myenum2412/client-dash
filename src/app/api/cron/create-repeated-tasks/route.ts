@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/client';
 import { sendRepeatedTaskEmail } from '@/lib/email';
+import { adjustWeekendDateToString } from '@/lib/task-utils';
 
 /**
  * Verify cron job authentication
@@ -114,9 +115,13 @@ export async function GET(request: NextRequest) {
 
         // Create new task instance
         const newTaskNo = `${task.task_no}-${todayStr}`;
-        const newDueDate = task.repeat_config?.has_specific_time 
+        const calculatedDueDate = task.repeat_config?.has_specific_time 
           ? `${todayStr}T${task.repeat_config.start_time || '09:00'}:00.000Z`
           : todayStr;
+        
+        // Adjust weekend dates for due_date and start_date
+        const newDueDate = adjustWeekendDateToString(calculatedDueDate);
+        const newStartDate = adjustWeekendDateToString(todayStr);
 
         const { data: newTask, error: createError } = await supabase
           .from('tasks')
@@ -129,7 +134,7 @@ export async function GET(request: NextRequest) {
             status: 'todo', // Always start as todo
             priority: task.priority,
             due_date: newDueDate,
-            start_date: todayStr,
+            start_date: newStartDate,
             is_repeated: false, // This instance is not repeated
             repeat_config: null, // This instance has no repeat config
             support_files: task.support_files || [],

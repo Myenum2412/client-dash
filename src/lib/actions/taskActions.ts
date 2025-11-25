@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { adjustWeekendDateToString } from "@/lib/task-utils";
 import type { Task, TaskFormData, UpdateTaskFormData } from "@/types";
 
 // ============================================
@@ -99,8 +100,8 @@ export async function createTask(formData: TaskFormData) {
       team_id: validatedData.team_id,
       status: validatedData.status,
       priority: validatedData.priority,
-      due_date: validatedData.due_date,
-      start_date: validatedData.start_date,
+      due_date: adjustWeekendDateToString(validatedData.due_date),
+      start_date: adjustWeekendDateToString(validatedData.start_date),
       is_repeated: validatedData.is_repeated,
       repeat_config: validatedData.repeat_config,
       support_files: supportFileUrls.length > 0 ? supportFileUrls : null,
@@ -465,8 +466,8 @@ export async function updateTask(formData: UpdateTaskFormData, updatedByStaffId?
       team_id: validatedData.team_id,
       status: validatedData.status,
       priority: validatedData.priority,
-      due_date: validatedData.due_date,
-      start_date: validatedData.start_date,
+      due_date: adjustWeekendDateToString(validatedData.due_date),
+      start_date: adjustWeekendDateToString(validatedData.start_date),
       is_repeated: validatedData.is_repeated,
       repeat_config: validatedData.repeat_config,
       ...(supportFileUrls.length > 0 && { support_files: supportFileUrls }),

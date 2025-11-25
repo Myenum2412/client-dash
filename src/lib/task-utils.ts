@@ -1,6 +1,66 @@
 import type { Task } from '@/types';
 
 /**
+ * Adjust weekend dates to working days (Monday-Friday)
+ * - Saturday → previous Friday
+ * - Sunday → next Monday
+ * - Weekdays remain unchanged
+ * @param date - Date to adjust (Date object or ISO string)
+ * @returns Adjusted Date object (always a weekday)
+ */
+export function adjustWeekendDate(date: Date | string | null | undefined): Date | null | undefined {
+  if (!date) return date as null | undefined;
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if date is valid
+  if (isNaN(dateObj.getTime())) {
+    return dateObj; // Return invalid date as-is (will fail validation later)
+  }
+  
+  const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+  
+  // Saturday → previous Friday
+  if (dayOfWeek === 6) {
+    const adjusted = new Date(dateObj);
+    adjusted.setDate(dateObj.getDate() - 1);
+    return adjusted;
+  }
+  
+  // Sunday → next Monday
+  if (dayOfWeek === 0) {
+    const adjusted = new Date(dateObj);
+    adjusted.setDate(dateObj.getDate() + 1);
+    return adjusted;
+  }
+  
+  // Already a weekday (Mon-Fri), return as-is
+  return dateObj;
+}
+
+/**
+ * Adjust weekend date and return as ISO string (preserves time component)
+ * @param date - Date to adjust (Date object or ISO string)
+ * @returns Adjusted date as ISO string, or null/undefined if input was null/undefined
+ */
+export function adjustWeekendDateToString(date: Date | string | null | undefined): string | null | undefined {
+  if (!date) return date;
+  
+  const adjusted = adjustWeekendDate(date);
+  if (!adjusted) return adjusted;
+  
+  // If original date was a string with time component, preserve it
+  if (typeof date === 'string' && date.includes('T')) {
+    const timePart = date.split('T')[1]; // Get time part (e.g., "09:00:00.000Z")
+    const dateOnly = adjusted.toISOString().split('T')[0]; // Get date part from adjusted date
+    return `${dateOnly}T${timePart}`;
+  }
+  
+  // Return date only (no time component)
+  return adjusted.toISOString().split('T')[0];
+}
+
+/**
  * Get the display number for a task with delegation suffix
  * @param task - The task object
  * @returns Task number with delegation suffix (e.g., "T001.1", "T001.2")
