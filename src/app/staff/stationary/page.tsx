@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useStationaryItems, type StationaryItem } from '@/hooks/use-stationary';
-import { BuyStationaryDialog } from '@/components/staff/buy-stationary-dialog';
-import { DeleteStationaryDialog } from '@/components/staff/delete-stationary-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShoppingBag, Search, Trash2 } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Minus, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   useReactTable,
@@ -34,18 +32,15 @@ export default function StaffStationaryPage() {
   const { user } = useAuth();
   const branch = user?.branch || '';
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItem, setSelectedItem] = useState<StationaryItem | null>(null);
-  const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
+  // Track pending quantity changes: Map<itemId, newQuantity>
+  const [pendingChanges, setPendingChanges] = useState<Map<string, number>>(new Map());
 
   const {
     stationaryItems,
     isLoading,
-    buyStationaryItem,
-    deleteStationaryItem,
-    isBuying,
-    isDeleting,
+    batchUpdateStationaryItems,
+    isSaving,
   } = useStationaryItems(branch);
 
   // Filter items by search query
@@ -58,6 +53,56 @@ export default function StaffStationaryPage() {
         item.added_by_staff_name.toLowerCase().includes(query)
     );
   }, [stationaryItems, searchQuery]);
+
+  // Get current quantity for an item (pending change or original)
+  const getCurrentQuantity = useCallback((item: StationaryItem): number => {
+    return pendingChanges.get(item.id) ?? item.quantity;
+  }, [pendingChanges]);
+
+  // Handle quantity increment
+  const handleIncrement = useCallback((item: StationaryItem) => {
+    setPendingChanges((prev) => {
+      const newMap = new Map(prev);
+      const currentQty = newMap.get(item.id) ?? item.quantity;
+      newMap.set(item.id, currentQty + 1);
+      return newMap;
+    });
+  }, []);
+
+  // Handle quantity decrement
+  const handleDecrement = useCallback((item: StationaryItem) => {
+    setPendingChanges((prev) => {
+      const newMap = new Map(prev);
+      const currentQty = newMap.get(item.id) ?? item.quantity;
+      if (currentQty > 0) {
+        newMap.set(item.id, currentQty - 1);
+        return newMap;
+      }
+      return prev;
+    });
+  }, []);
+
+  // Handle save changes
+  const handleSaveChanges = () => {
+    if (pendingChanges.size === 0) return;
+
+    const updates = Array.from(pendingChanges.entries()).map(([itemId, newQuantity]) => ({
+      itemId,
+      newQuantity,
+    }));
+
+    batchUpdateStationaryItems(
+      { updates, staffName: user?.name || '' },
+      {
+        onSuccess: () => {
+          setPendingChanges(new Map()); // Clear pending changes after successful save
+        },
+      }
+    );
+  };
+
+  // Check if there are pending changes
+  const hasPendingChanges = pendingChanges.size > 0;
 
   // Define columns
   const columns: ColumnDef<StationaryItem>[] = useMemo(
@@ -72,14 +117,49 @@ export default function StaffStationaryPage() {
       {
         accessorKey: 'quantity',
         header: 'Quantity',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <span>{row.original.quantity}</span>
-            <Badge variant="outline" className="text-xs">
-              {row.original.unit}
-            </Badge>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          const currentQty = getCurrentQuantity(item);
+          const hasChange = pendingChanges.has(item.id);
+          const originalQty = item.quantity;
+
+          return (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 border rounded-md">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-muted"
+                  onClick={() => handleDecrement(item)}
+                  disabled={currentQty === 0}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="min-w-[3rem] text-center font-medium px-2">
+                  {currentQty}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-muted"
+                  onClick={() => handleIncrement(item)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {item.unit}
+              </Badge>
+              {hasChange && (
+                <span className="text-xs text-muted-foreground">
+                  ({originalQty} → {currentQty})
+                </span>
+              )}
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'last_added_date',
@@ -99,39 +179,8 @@ export default function StaffStationaryPage() {
           <div className="text-sm">{row.original.added_by_staff_name || 'N/A'}</div>
         ),
       },
-      {
-        id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() => {
-                setSelectedItem(row.original);
-                setIsBuyDialogOpen(true);
-              }}
-              disabled={row.original.quantity <= 0}
-            >
-              <ShoppingBag className="h-4 w-4 mr-1" />
-              Buy
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => {
-                setSelectedItem(row.original);
-                setIsDeleteDialogOpen(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete
-            </Button>
-          </div>
-        ),
-      },
     ],
-    []
+    [getCurrentQuantity, handleIncrement, handleDecrement, pendingChanges]
   );
 
   // Initialize TanStack Table
@@ -153,13 +202,6 @@ export default function StaffStationaryPage() {
     },
   });
 
-  const handleBuy = (itemId: string, quantity: number, staffName: string) => {
-    buyStationaryItem({ itemId, quantityToBuy: quantity, staffName });
-  };
-
-  const handleDelete = (itemId: string) => {
-    deleteStationaryItem(itemId);
-  };
 
   if (!branch) {
     return (
@@ -188,7 +230,7 @@ export default function StaffStationaryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center py-4">
+          <div className="flex items-center justify-between py-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -198,6 +240,16 @@ export default function StaffStationaryPage() {
                 className="pl-8"
               />
             </div>
+            {hasPendingChanges && (
+              <Button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="ml-4"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            )}
           </div>
 
           {isLoading ? (
@@ -283,23 +335,6 @@ export default function StaffStationaryPage() {
           )}
         </CardContent>
       </Card>
-
-      <BuyStationaryDialog
-        isOpen={isBuyDialogOpen}
-        onOpenChange={setIsBuyDialogOpen}
-        item={selectedItem}
-        onBuy={handleBuy}
-        isBuying={isBuying}
-        staffName={user?.name || ''}
-      />
-
-      <DeleteStationaryDialog
-        isOpen={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        item={selectedItem}
-        onDelete={handleDelete}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 }

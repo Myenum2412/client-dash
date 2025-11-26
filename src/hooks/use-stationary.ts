@@ -190,6 +190,101 @@ export function useStationaryItems(branch: string) {
     },
   });
 
+  // Batch update stationary items mutation
+  const batchUpdateStationaryItems = useMutation({
+    mutationFn: async ({ 
+      updates, 
+      staffName 
+    }: { 
+      updates: Array<{ itemId: string; newQuantity: number }>; 
+      staffName: string;
+    }) => {
+      if (updates.length === 0) {
+        throw new Error('No updates provided');
+      }
+
+      // Get all items being updated to check current state and send alerts
+      const itemIds = updates.map(u => u.itemId);
+      const { data: items, error: itemsError } = await supabase
+        .from('grocery_request_items')
+        .select('*, grocery_requests!inner(branch, status)')
+        .in('id', itemIds);
+
+      if (itemsError) throw itemsError;
+
+      // Validate all items exist and are approved
+      const itemsMap = new Map(items?.map((item: any) => [item.id, item]) || []);
+      for (const update of updates) {
+        const item = itemsMap.get(update.itemId);
+        if (!item || item.grocery_requests?.status !== 'approved') {
+          throw new Error(`Item ${update.itemId} not found or not approved`);
+        }
+        if (update.newQuantity < 0) {
+          throw new Error(`Quantity cannot be negative for item ${item.item_name}`);
+        }
+      }
+
+      // Perform batch updates
+      const updatePromises = updates.map(({ itemId, newQuantity }) =>
+        supabase
+          .from('grocery_request_items')
+          .update({ quantity: newQuantity })
+          .eq('id', itemId)
+      );
+
+      const results = await Promise.all(updatePromises);
+      
+      // Check for errors
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].error) {
+          throw results[i].error;
+        }
+      }
+
+      // Check for low stock items and send email alerts
+      const lowStockItems = updates.filter(({ itemId, newQuantity }) => {
+        const item = itemsMap.get(itemId);
+        return item && newQuantity < 1;
+      });
+
+      // Send email alerts for low stock items
+      if (lowStockItems.length > 0) {
+        const alertPromises = lowStockItems.map(async ({ itemId, newQuantity }) => {
+          const item = itemsMap.get(itemId);
+          if (!item) return;
+
+          try {
+            await fetch('/api/email/send-stationary-low-stock-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                itemName: item.item_name,
+                quantity: newQuantity,
+                branch: item.grocery_requests?.branch || branch,
+                staffName,
+              }),
+            });
+          } catch (error) {
+            console.error(`Failed to send low stock alert for ${item.item_name}:`, error);
+            // Don't throw - update should still succeed even if email fails
+          }
+        });
+
+        await Promise.all(alertPromises);
+      }
+
+      return { success: true, updatedCount: updates.length };
+    },
+    onSuccess: () => {
+      invalidateStationary();
+      toast.success('Changes saved successfully');
+    },
+    onError: (error: Error) => {
+      console.error('Error batch updating stationary items:', error);
+      toast.error(error.message || 'Failed to save changes');
+    },
+  });
+
   return {
     stationaryItems,
     isLoading,
@@ -197,8 +292,10 @@ export function useStationaryItems(branch: string) {
     refetch,
     buyStationaryItem: buyStationaryItem.mutate,
     deleteStationaryItem: deleteStationaryItem.mutate,
+    batchUpdateStationaryItems: batchUpdateStationaryItems.mutate,
     isBuying: buyStationaryItem.isPending,
     isDeleting: deleteStationaryItem.isPending,
+    isSaving: batchUpdateStationaryItems.isPending,
   };
 }
 
