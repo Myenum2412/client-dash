@@ -95,7 +95,7 @@ export function StaffSidebar({ ...props }: React.ComponentProps<typeof Sidebar>)
         ]
       : []),
     {
-      title: "Maintenance",
+      title: "Assets Maintenance",
       url: "/staff/maintenance",
       icon: IconTool,
     },

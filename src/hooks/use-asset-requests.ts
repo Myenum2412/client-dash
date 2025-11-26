@@ -22,6 +22,8 @@ interface CreateAssetRequestData {
   serial_no?: string; // Serial Number (for system type)
   brand_name?: string; // Brand (for system type)
   workstation?: string; // Workstation (for system type)
+  user_name?: string; // User/assignee name (for system type)
+  remote_id?: string; // Remote ID (for system type)
   
   // Common-specific fields
   shop_contact?: string;
@@ -48,6 +50,8 @@ interface StaffUpdateAssetRequestData {
   serial_no?: string; // Serial Number (for system type)
   brand_name?: string; // Brand (for system type)
   workstation?: string; // Workstation (for system type)
+  user_name?: string; // User/assignee name (for system type)
+  remote_id?: string; // Remote ID (for system type)
   
   // Common-specific fields
   shop_contact?: string;

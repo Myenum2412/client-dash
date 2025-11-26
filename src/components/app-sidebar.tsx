@@ -66,7 +66,7 @@ const data = {
       icon: IconCash,
     },
     {
-      title: "Maintenance",
+      title: "Assets Maintenance",
       url: "/admin/maintenance",
       icon: IconTool,
     },

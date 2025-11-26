@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { MultipleImageUpload } from '@/components/cashbook/multiple-image-upload';
 import { useAssetRequests } from '@/hooks/use-asset-requests';
@@ -43,16 +44,17 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
     quantity: 1,
     
     // System fields
-    condition: 'new' as 'new' | 'refurbished' | 'used',
-    additional_notes: '',
+    condition: 'new' as 'new' | 'used',
+    specification: '', // Changed from additional_notes to specification
     serial_no: '', // Serial Number for system type
-    brand_name: '', // Brand for system type
-    workstation: '', // Workstation for system type
+    brand_name: '', // Brand for system type (required for system)
+    workstation: '', // Workstation - kept for compatibility but not shown in UI
+    user_name: '', // User Name (required for system)
+    remote_id: '', // Remote ID (optional)
+    warranty: '', // Warranty (optional) - moved to system fields
     
     // Common fields
     shop_contact: '',
-    warranty: '',
-    specification: '',
     price: 0,
   });
 
@@ -65,12 +67,27 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
     }
 
     if (!formData.product_name) {
-      toast.error('Please enter product name');
+      toast.error('Product Name is required');
       return;
     }
 
     // Validate based on request type
-    if (requestType === 'common') {
+    if (requestType === 'system') {
+      // System type validation
+      if (!formData.brand_name.trim()) {
+        toast.error('Brand is required');
+        return;
+      }
+      if (!formData.user_name.trim()) {
+        toast.error('User Name is required');
+        return;
+      }
+      // Images are required for system type (matching upload-product-dialog behavior)
+      if (selectedFiles.length === 0) {
+        toast.error('Please select at least one product image');
+        return;
+      }
+    } else if (requestType === 'common') {
       if (!formData.shop_contact) {
         toast.error('Please enter shop contact');
         return;
@@ -118,10 +135,13 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
       // Add system-specific fields
       if (requestType === 'system') {
         submitData.condition = formData.condition;
-        submitData.additional_notes = formData.additional_notes;
-        submitData.serial_no = formData.serial_no || undefined;
-        submitData.brand_name = formData.brand_name || undefined;
-        submitData.workstation = formData.workstation || undefined;
+        submitData.specification = formData.specification.trim() || undefined;
+        submitData.serial_no = formData.serial_no.trim() || undefined;
+        submitData.brand_name = formData.brand_name.trim();
+        submitData.warranty = formData.warranty.trim() || undefined;
+        submitData.workstation = formData.workstation.trim() || undefined;
+        submitData.user_name = formData.user_name.trim() || undefined;
+        submitData.remote_id = formData.remote_id.trim() || undefined;
       } else {
         // Add common-specific fields
         submitData.shop_contact = formData.shop_contact || undefined;
@@ -144,13 +164,14 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
         product_name: '',
         quantity: 1,
         condition: 'new',
-        additional_notes: '',
+        specification: '',
         serial_no: '',
         brand_name: '',
         workstation: '',
-        shop_contact: '',
+        user_name: '',
+        remote_id: '',
         warranty: '',
-        specification: '',
+        shop_contact: '',
         price: 0,
       });
       setSelectedFiles([]);
@@ -220,108 +241,134 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
               {/* Conditional form fields based on requestType */}
               {requestType === 'system' ? (
                 <>
-                  {/* System fields: Product Name, Quantity, Condition, Notes, Images */}
-                  {/* Product Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="product_name">Product Name</Label>
-                    <Input
-                      id="product_name"
-                      value={formData.product_name}
-                      onChange={(e) => setFormData({...formData, product_name: e.target.value})}
-                      placeholder="e.g., Dell Laptop, HP Printer, Monitor"
-                      required
-                    />
+                  {/* System Type Fields - Matching upload-product-dialog.tsx layout */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Product Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="product_name">Product Name *</Label>
+                      <Input
+                        id="product_name"
+                        value={formData.product_name}
+                        onChange={(e) => setFormData({...formData, product_name: e.target.value})}
+                        placeholder="Enter actual product name"
+                        required
+                      />
+                    </div>
+
+                    {/* Brand */}
+                    <div className="space-y-2">
+                      <Label htmlFor="brand_name">Brand *</Label>
+                      <Input
+                        id="brand_name"
+                        value={formData.brand_name}
+                        onChange={(e) => setFormData({...formData, brand_name: e.target.value})}
+                        placeholder="Enter brand name"
+                        required
+                      />
+                    </div>
+
+                    {/* Serial Number */}
+                    <div className="space-y-2">
+                      <Label htmlFor="serial_no">Serial Number</Label>
+                      <Input
+                        id="serial_no"
+                        value={formData.serial_no}
+                        onChange={(e) => setFormData({...formData, serial_no: e.target.value})}
+                        placeholder="Enter serial number (optional)"
+                      />
+                    </div>
+
+                    {/* Warranty */}
+                    <div className="space-y-2">
+                      <Label htmlFor="warranty">Warranty</Label>
+                      <Input
+                        id="warranty"
+                        value={formData.warranty}
+                        onChange={(e) => setFormData({...formData, warranty: e.target.value})}
+                        placeholder="e.g., 1 year, 2 years (optional)"
+                      />
+                    </div>
+
+                    {/* Condition */}
+                    <div className="space-y-2">
+                      <Label htmlFor="condition">Condition *</Label>
+                      <Select 
+                        value={formData.condition} 
+                        onValueChange={(value: 'new' | 'used') => setFormData({...formData, condition: value})}
+                      >
+                        <SelectTrigger id="condition">
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="used">Used</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* User Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="user_name">User Name *</Label>
+                      <Input
+                        id="user_name"
+                        value={formData.user_name}
+                        onChange={(e) => setFormData({...formData, user_name: e.target.value})}
+                        placeholder="Enter user/assignee name"
+                        required
+                      />
+                    </div>
+
+                    {/* Remote ID */}
+                    <div className="space-y-2">
+                      <Label htmlFor="remote_id">Remote ID</Label>
+                      <Input
+                        id="remote_id"
+                        value={formData.remote_id}
+                        onChange={(e) => setFormData({...formData, remote_id: e.target.value})}
+                        placeholder="Enter remote ID (optional)"
+                      />
+                    </div>
+
+                    {/* Quantity - keep for asset_requests schema requirement */}
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity *</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
+                        required
+                      />
+                    </div>
                   </div>
 
-                  {/* Serial Number */}
+                  {/* Specification */}
                   <div className="space-y-2">
-                    <Label htmlFor="serial_no">Serial Number</Label>
-                    <Input
-                      id="serial_no"
-                      value={formData.serial_no}
-                      onChange={(e) => setFormData({...formData, serial_no: e.target.value})}
-                      placeholder="e.g., SN-2024-001"
-                    />
-                  </div>
-
-                  {/* Brand */}
-                  <div className="space-y-2">
-                    <Label htmlFor="brand_name">Brand</Label>
-                    <Input
-                      id="brand_name"
-                      value={formData.brand_name}
-                      onChange={(e) => setFormData({...formData, brand_name: e.target.value})}
-                      placeholder="e.g., Dell, HP, Lenovo"
-                    />
-                  </div>
-
-                  {/* Workstation */}
-                  <div className="space-y-2">
-                    <Label htmlFor="workstation">Workstation</Label>
-                    <Input
-                      id="workstation"
-                      value={formData.workstation}
-                      onChange={(e) => setFormData({...formData, workstation: e.target.value})}
-                      placeholder="e.g., WS-101, Desk-A5"
-                    />
-                  </div>
-
-                  {/* Quantity */}
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
-                      required
-                    />
-                  </div>
-
-                  {/* Condition */}
-                  <div className="space-y-3">
-                    <Label>Condition</Label>
-                    <RadioGroup
-                      value={formData.condition}
-                      onValueChange={(value) => setFormData({...formData, condition: value as 'new' | 'refurbished' | 'used'})}
-                      className="flex flex-col space-y-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="new" id="new" />
-                        <Label htmlFor="new">New</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="refurbished" id="refurbished" />
-                        <Label htmlFor="refurbished">Refurbished</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="used" id="used" />
-                        <Label htmlFor="used">Used</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {/* Additional Notes */}
-                  <div className="space-y-2">
-                    <Label htmlFor="additional_notes">Additional Notes (Optional)</Label>
+                    <Label htmlFor="specification">Specification</Label>
                     <Textarea
-                      id="additional_notes"
-                      value={formData.additional_notes}
-                      onChange={(e) => setFormData({...formData, additional_notes: e.target.value})}
-                      placeholder="Any additional information or reason for this request..."
+                      id="specification"
+                      value={formData.specification}
+                      onChange={(e) => setFormData({...formData, specification: e.target.value})}
+                      placeholder="Enter product specifications and technical details (optional)"
                       rows={3}
                     />
                   </div>
 
-                  {/* Image Upload */}
-                  <MultipleImageUpload
-                    onImagesChange={setSelectedFiles}
-                    maxImages={5}
-                    maxSizeMB={5}
-                    acceptAllTypes={false}
-                    label="Upload Images (Optional, max 5MB each)"
-                  />
+                  {/* Photo Upload */}
+                  <div className="space-y-3">
+                    <Label>Product Photos *</Label>
+                    <MultipleImageUpload
+                      onImagesChange={setSelectedFiles}
+                      maxImages={5}
+                      maxSizeMB={5}
+                      acceptAllTypes={false}
+                      label="Upload actual product images (Required)"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Upload clear images of the purchased product for admin verification.
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
@@ -457,7 +504,15 @@ export function AddAssetDrawer({ isOpen, onOpenChange, onSubmit, isSubmitting = 
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isCreating || isUploading || isSubmitting}
+              disabled={
+                isCreating || 
+                isUploading || 
+                isSubmitting || 
+                !formData.product_name.trim() ||
+                (requestType === 'system' && (!formData.brand_name.trim() || !formData.user_name.trim())) ||
+                (requestType === 'common' && (!formData.shop_contact.trim() || !formData.brand_name.trim() || formData.quantity <= 0 || formData.price < 0)) ||
+                (requestType === 'system' && selectedFiles.length === 0)
+              }
             >
               {isCreating || isUploading || isSubmitting ? (
                 <>

@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, XCircle, Loader2, User, MapPin, Calendar, Package, Clock, Eye, Download, FileText, File, Archive, Building, Briefcase } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, User, MapPin, Calendar, Package, Clock, Eye, Download, FileText, File, Archive, Building, Briefcase, Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PurchaseRequisition } from '@/types/maintenance';
 import { format } from 'date-fns';
@@ -91,12 +91,58 @@ export function PurchaseApprovalDialog({ requisition, isOpen, onOpenChange }: Pu
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
       case 'approved':
         return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
+      case 'verification_pending':
+        return <Badge variant="default" className="bg-blue-100 text-blue-800"><Upload className="h-3 w-3 mr-1" />Awaiting Product Upload</Badge>;
+      case 'awaiting_final_verification':
+        return <Badge variant="default" className="bg-purple-100 text-purple-800"><Clock className="h-3 w-3 mr-1" />Awaiting Verification</Badge>;
+      case 'completed':
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle2 className="h-3 w-3 mr-1" />Completed</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
       default:
         return <Badge variant="secondary">{requisition.status}</Badge>;
     }
   };
+
+  // Get status display text
+  const getStatusDisplayText = () => {
+    switch (requisition.status) {
+      case 'approved':
+        return 'Approved';
+      case 'verification_pending':
+        return 'Approved - Awaiting Product Upload';
+      case 'awaiting_final_verification':
+        return 'Awaiting Final Verification';
+      case 'completed':
+        return 'Completed';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return requisition.status;
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = () => {
+    const iconClass = "h-4 w-4 mt-0.5";
+    switch (requisition.status) {
+      case 'approved':
+      case 'verification_pending':
+      case 'awaiting_final_verification':
+      case 'completed':
+        return <CheckCircle className={`${iconClass} text-green-600`} />;
+      case 'rejected':
+        return <XCircle className={`${iconClass} text-red-600`} />;
+      default:
+        return <Clock className={`${iconClass} text-gray-600`} />;
+    }
+  };
+
+  // Check if status is rejected
+  const isRejected = requisition.status === 'rejected';
+  
+  // Check if status is approved-related (should show approved_at)
+  const isApprovedRelated = ['approved', 'verification_pending', 'awaiting_final_verification', 'completed'].includes(requisition.status);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -239,32 +285,47 @@ export function PurchaseApprovalDialog({ requisition, isOpen, onOpenChange }: Pu
           {requisition.status !== 'pending' && (
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex items-start gap-2 mb-2">
-                {requisition.status === 'approved' ? (
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-red-600 mt-0.5" />
-                )}
+                {getStatusIcon()}
                 <div className="flex-1">
                   <p className="text-sm font-medium">
-                    {requisition.status === 'approved' ? 'Approved' : 'Rejected'} by {requisition.admin?.name || 'Admin'}
+                    {getStatusDisplayText()}
+                    {(requisition.admin?.name || requisition.approved_by) && (
+                      <span> by {requisition.admin?.name || 'Admin'}</span>
+                    )}
                   </p>
                 </div>
               </div>
-              {requisition.approved_at && (
+              {isApprovedRelated && requisition.approved_at && (
                 <p className="text-sm text-muted-foreground">
-                  On {format(new Date(requisition.approved_at), 'PPp')}
+                  Approved on {format(new Date(requisition.approved_at), 'PPp')}
                 </p>
               )}
-              {requisition.admin_notes && (
+              {isRejected && requisition.approved_at && (
+                <p className="text-sm text-muted-foreground">
+                  Rejected on {format(new Date(requisition.approved_at), 'PPp')}
+                </p>
+              )}
+              {requisition.verified_at && (
+                <p className="text-sm text-muted-foreground">
+                  Verified on {format(new Date(requisition.verified_at), 'PPp')}
+                </p>
+              )}
+              {requisition.admin_notes && !isRejected && (
                 <div className="mt-2 p-2 bg-muted rounded">
                   <p className="text-xs font-medium text-muted-foreground mb-1">Admin Notes:</p>
                   <p className="text-sm">{requisition.admin_notes}</p>
                 </div>
               )}
-              {requisition.rejection_reason && (
+              {isRejected && requisition.rejection_reason && (
                 <div className="mt-2 p-2 bg-red-50 rounded">
                   <p className="text-xs font-medium text-red-800 mb-1">Rejection Reason:</p>
                   <p className="text-sm text-red-700">{requisition.rejection_reason}</p>
+                </div>
+              )}
+              {requisition.verification_notes && (
+                <div className="mt-2 p-2 bg-blue-50 rounded">
+                  <p className="text-xs font-medium text-blue-800 mb-1">Verification Notes:</p>
+                  <p className="text-sm text-blue-700">{requisition.verification_notes}</p>
                 </div>
               )}
             </div>
