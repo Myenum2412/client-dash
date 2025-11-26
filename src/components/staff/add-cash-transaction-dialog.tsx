@@ -99,9 +99,11 @@ export function AddCashTransactionDialog({ branch, open: externalOpen, onOpenCha
     // Check balance validation for cash out transactions
     if (transactionType === 'cash_out') {
       const currentBalance = summary?.closing_balance || 0;
+      const cashOutAmount = formData.cash_out || 0;
+      const resultingBalance = currentBalance - cashOutAmount;
       
-      // Check if current balance is below 500 before allowing cash out
-      if (currentBalance < 500) {
+      // Check if resulting balance will be below 500 after the transaction
+      if (resultingBalance < 500) {
         toast.error('Balance is insufficient, please try again after top up balance');
         
         // Send email to admins about insufficient balance
