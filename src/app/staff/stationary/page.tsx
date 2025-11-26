@@ -16,16 +16,29 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShoppingBag, Search, Plus, Minus, Save } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ShoppingBag, Search, Plus, Minus, Save, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
   getPaginationRowModel,
+  flexRender,
   type ColumnDef,
   type SortingState,
+  type RowSelectionState,
+  type ColumnFiltersState,
+  type PaginationState,
 } from '@tanstack/react-table';
 
 export default function StaffStationaryPage() {
@@ -33,8 +46,19 @@ export default function StaffStationaryPage() {
   const branch = user?.branch || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   // Track pending quantity changes: Map<itemId, newQuantity>
   const [pendingChanges, setPendingChanges] = useState<Map<string, number>>(new Map());
+  
+  // Filter states
+  const [unitFilter, setUnitFilter] = useState<string>('all');
+  const [quantityFilter, setQuantityFilter] = useState<string>('all');
+  const [staffFilter, setStaffFilter] = useState<string>('all');
 
   const {
     stationaryItems,
@@ -43,16 +67,49 @@ export default function StaffStationaryPage() {
     isSaving,
   } = useStationaryItems(branch);
 
-  // Filter items by search query
+  // Get unique staff names for filter
+  const uniqueStaffNames = useMemo(() => {
+    const names = new Set(stationaryItems.map(item => item.added_by_staff_name).filter(Boolean));
+    return Array.from(names).sort();
+  }, [stationaryItems]);
+
+  // Apply filters
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return stationaryItems;
-    const query = searchQuery.toLowerCase();
-    return stationaryItems.filter(
-      (item) =>
-        item.item_name.toLowerCase().includes(query) ||
-        item.added_by_staff_name.toLowerCase().includes(query)
-    );
-  }, [stationaryItems, searchQuery]);
+    let filtered = [...stationaryItems];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.item_name.toLowerCase().includes(query) ||
+          item.added_by_staff_name.toLowerCase().includes(query)
+      );
+    }
+
+    // Unit filter
+    if (unitFilter !== 'all') {
+      filtered = filtered.filter(item => item.unit === unitFilter);
+    }
+
+    // Quantity filter
+    if (quantityFilter !== 'all') {
+      if (quantityFilter === 'low') {
+        filtered = filtered.filter(item => item.quantity <= 1);
+      } else if (quantityFilter === 'medium') {
+        filtered = filtered.filter(item => item.quantity > 1 && item.quantity <= 10);
+      } else if (quantityFilter === 'high') {
+        filtered = filtered.filter(item => item.quantity > 10);
+      }
+    }
+
+    // Staff filter
+    if (staffFilter !== 'all') {
+      filtered = filtered.filter(item => item.added_by_staff_name === staffFilter);
+    }
+
+    return filtered;
+  }, [stationaryItems, searchQuery, unitFilter, quantityFilter, staffFilter]);
 
   // Get current quantity for an item (pending change or original)
   const getCurrentQuantity = useCallback((item: StationaryItem): number => {
@@ -108,15 +165,75 @@ export default function StaffStationaryPage() {
   const columns: ColumnDef<StationaryItem>[] = useMemo(
     () => [
       {
+        id: 'select',
+        header: ({ table }) => (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
         accessorKey: 'item_name',
-        header: 'Item Name',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              className="h-8 px-2 lg:px-3"
+            >
+              Item Name
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className="ml-2 h-4 w-4" />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         cell: ({ row }) => (
           <div className="font-medium">{row.original.item_name}</div>
         ),
       },
       {
         accessorKey: 'quantity',
-        header: 'Quantity',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              className="h-8 px-2 lg:px-3"
+            >
+              Quantity
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className="ml-2 h-4 w-4" />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         cell: ({ row }) => {
           const item = row.original;
           const currentQty = getCurrentQuantity(item);
@@ -163,7 +280,24 @@ export default function StaffStationaryPage() {
       },
       {
         accessorKey: 'last_added_date',
-        header: 'Last Added Date',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              className="h-8 px-2 lg:px-3"
+            >
+              Last Added Date
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className="ml-2 h-4 w-4" />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         cell: ({ row }) => (
           <div className="text-sm text-muted-foreground">
             {row.original.last_added_date
@@ -171,10 +305,32 @@ export default function StaffStationaryPage() {
               : 'N/A'}
           </div>
         ),
+        sortingFn: (rowA, rowB) => {
+          const dateA = rowA.original.last_added_date ? new Date(rowA.original.last_added_date).getTime() : 0;
+          const dateB = rowB.original.last_added_date ? new Date(rowB.original.last_added_date).getTime() : 0;
+          return dateA - dateB;
+        },
       },
       {
         accessorKey: 'added_by_staff_name',
-        header: 'Added By',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              className="h-8 px-2 lg:px-3"
+            >
+              Added By
+              {column.getIsSorted() === 'asc' ? (
+                <ArrowUp className="ml-2 h-4 w-4" />
+              ) : column.getIsSorted() === 'desc' ? (
+                <ArrowDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
         cell: ({ row }) => (
           <div className="text-sm">{row.original.added_by_staff_name || 'N/A'}</div>
         ),
@@ -191,16 +347,55 @@ export default function StaffStationaryPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getRowId: (row) => row.id,
     state: {
       sorting,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
+      rowSelection,
+      columnFilters,
+      pagination,
     },
   });
+
+  // Get selected rows
+  const selectedRows = useMemo(() => {
+    return table.getFilteredSelectedRowModel().rows.map(row => row.original);
+  }, [table, rowSelection]);
+
+  // Handle CSV download
+  const handleDownloadCSV = useCallback(() => {
+    const selected = selectedRows.length > 0 ? selectedRows : filteredItems;
+    
+    if (selected.length === 0) {
+      toast.error('No items to download');
+      return;
+    }
+
+    const csvContent = [
+      ['Item Name', 'Quantity', 'Unit', 'Last Added Date', 'Added By'],
+      ...selected.map(item => [
+        item.item_name,
+        String(getCurrentQuantity(item)),
+        item.unit,
+        item.last_added_date ? format(new Date(item.last_added_date), 'MMM dd, yyyy') : 'N/A',
+        item.added_by_staff_name || 'N/A',
+      ])
+    ].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stationary-items-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success(`Exported ${selected.length} item(s) successfully`);
+  }, [selectedRows, filteredItems, getCurrentQuantity]);
 
 
   if (!branch) {
@@ -230,26 +425,99 @@ export default function StaffStationaryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between py-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+          {/* Search and Action Bar */}
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {hasPendingChanges && (
+                  <Button
+                    onClick={handleSaveChanges}
+                    disabled={isSaving}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                )}
+                
+                {(Object.keys(rowSelection).length > 0 || filteredItems.length > 0) && (
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadCSV}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {Object.keys(rowSelection).length > 0
+                      ? `Download Selected (${Object.keys(rowSelection).length})`
+                      : 'Download All'}
+                  </Button>
+                )}
+              </div>
             </div>
-            {hasPendingChanges && (
-              <Button
-                onClick={handleSaveChanges}
-                disabled={isSaving}
-                className="ml-4"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            )}
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              <Select value={unitFilter} onValueChange={setUnitFilter}>
+                <SelectTrigger className="w-full sm:w-[140px]">
+                  <SelectValue placeholder="Filter by Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Units</SelectItem>
+                  <SelectItem value="Box">Box</SelectItem>
+                  <SelectItem value="Pcs">Pcs</SelectItem>
+                  <SelectItem value="Rim">Rim</SelectItem>
+                  <SelectItem value="Count">Count</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={quantityFilter} onValueChange={setQuantityFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Filter by Quantity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Quantities</SelectItem>
+                  <SelectItem value="low">Low (≤1)</SelectItem>
+                  <SelectItem value="medium">Medium (2-10)</SelectItem>
+                  <SelectItem value="high">High (&gt;10)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={staffFilter} onValueChange={setStaffFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Filter by Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Staff</SelectItem>
+                  {uniqueStaffNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {(unitFilter !== 'all' || quantityFilter !== 'all' || staffFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setUnitFilter('all');
+                    setQuantityFilter('all');
+                    setStaffFilter('all');
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
 
           {isLoading ? (
@@ -279,40 +547,87 @@ export default function StaffStationaryPage() {
                           <TableHead key={header.id}>
                             {header.isPlaceholder
                               ? null
-                              : typeof header.column.columnDef.header === 'string'
-                              ? header.column.columnDef.header
-                              : null}
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
                           </TableHead>
                         ))}
                       </TableRow>
                     ))}
                   </TableHeader>
                   <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {typeof cell.column.columnDef.cell === 'function'
-                              ? cell.column.columnDef.cell(cell.getContext())
-                              : null}
-                          </TableCell>
-                        ))}
+                    {table.getRowModel().rows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={columns.length} className="h-24 text-center">
+                          No results found.
+                        </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && 'selected'}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
 
-              <div className="flex items-center justify-between px-2 py-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-                  {Math.min(
-                    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                    filteredItems.length
-                  )}{' '}
-                  of {filteredItems.length} items
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+                    {Math.min(
+                      (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                      table.getFilteredRowModel().rows.length
+                    )}{' '}
+                    of {table.getFilteredRowModel().rows.length} item(s)
+                    {Object.keys(rowSelection).length > 0 && (
+                      <span className="ml-2 text-primary">
+                        ({Object.keys(rowSelection).length} selected)
+                      </span>
+                    )}
+                  </div>
+                  
+                  <Select
+                    value={String(table.getState().pagination.pageSize)}
+                    onValueChange={(value) => {
+                      table.setPageSize(Number(value));
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[70px]">
+                      <SelectValue placeholder={table.getState().pagination.pageSize} />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      {[10, 25, 50, 100].map((pageSize) => (
+                        <SelectItem key={pageSize} value={String(pageSize)}>
+                          {pageSize}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(0)}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    First
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -321,6 +636,9 @@ export default function StaffStationaryPage() {
                   >
                     Previous
                   </Button>
+                  <div className="text-sm text-muted-foreground px-2">
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -328,6 +646,14 @@ export default function StaffStationaryPage() {
                     disabled={!table.getCanNextPage()}
                   >
                     Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    Last
                   </Button>
                 </div>
               </div>
