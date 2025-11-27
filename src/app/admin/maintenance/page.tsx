@@ -74,6 +74,7 @@ export default function AdminMaintenancePage() {
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('maintenance');
   
   // Card filter states for each tab
   const [maintenanceStatusFilter, setMaintenanceStatusFilter] = useState<string>('all');
@@ -155,9 +156,15 @@ export default function AdminMaintenancePage() {
     setSelectedStatus('all');
   };
 
+  // Helper function for case-insensitive branch comparison
+  const compareBranches = (branch1: string | undefined, branch2: string): boolean => {
+    if (!branch1 || !branch2) return false;
+    return branch1.toLowerCase().trim() === branch2.toLowerCase().trim();
+  };
+
   // Apply filters to maintenance requests
   const filteredRequests = requests.filter((r) => {
-    if (selectedBranch !== 'all' && r.branch !== selectedBranch) return false;
+    if (selectedBranch !== 'all' && !compareBranches(r.branch, selectedBranch)) return false;
     if (selectedStaff !== 'all' && r.staff_id !== selectedStaff) return false;
     if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
     if (maintenanceStatusFilter !== 'all' && r.status !== maintenanceStatusFilter) return false;
@@ -180,6 +187,11 @@ export default function AdminMaintenancePage() {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
+
+  // Reset category filter when switching tabs (to avoid confusion between expense categories and request types)
+  useEffect(() => {
+    setSelectedCategory('all');
+  }, [activeTab]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -213,7 +225,7 @@ export default function AdminMaintenancePage() {
 
   // Apply filters to purchase requisitions
   const filteredRequisitions = requisitions.filter((r) => {
-    if (selectedBranch !== 'all' && r.branch !== selectedBranch) return false;
+    if (selectedBranch !== 'all' && !compareBranches(r.branch, selectedBranch)) return false;
     if (selectedStaff !== 'all' && r.staff_id !== selectedStaff) return false;
     if (selectedDepartment !== 'all' && r.department !== selectedDepartment) return false;
     if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
@@ -238,7 +250,7 @@ export default function AdminMaintenancePage() {
 
   // Apply filters to scrap requests
   const filteredScrapRequests = scrapRequests.filter((r) => {
-    if (selectedBranch !== 'all' && r.branch !== selectedBranch) return false;
+    if (selectedBranch !== 'all' && !compareBranches(r.branch, selectedBranch)) return false;
     if (selectedStaff !== 'all' && r.staff_id !== selectedStaff) return false;
     if (selectedDepartment !== 'all' && r.staff?.department !== selectedDepartment) return false;
     if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
@@ -263,10 +275,14 @@ export default function AdminMaintenancePage() {
 
   // Apply filters to asset requests
   const filteredAssetRequests = assetRequests.filter((r) => {
-    if (selectedBranch !== 'all' && r.branch !== selectedBranch) return false;
+    if (selectedBranch !== 'all' && !compareBranches(r.branch, selectedBranch)) return false;
     if (selectedStaff !== 'all' && r.staff_id !== selectedStaff) return false;
     if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
     if (assetStatusFilter !== 'all' && r.status !== assetStatusFilter) return false;
+    // Filter by request_type (System/Common) when category filter is set
+    if (selectedCategory !== 'all' && (selectedCategory === 'system' || selectedCategory === 'common')) {
+      if (r.request_type !== selectedCategory) return false;
+    }
     if (startDate) {
       const requestDate = new Date(r.requested_date || r.created_at);
       if (requestDate < startDate) return false;
@@ -427,23 +443,33 @@ export default function AdminMaintenancePage() {
               </Select>
             </div>
 
-            {/* Category Filter */}
+            {/* Category Filter - Shows System/Common for Assets tab, expense categories for others */}
             <div className="space-y-1.5 sm:space-y-2 min-w-0">
               <Label htmlFor="category" className="text-xs font-medium flex items-center gap-1.5">
                 <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="truncate">Category</span>
+                <span className="truncate">{activeTab === 'assets' ? 'Type' : 'Category'}</span>
               </Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="h-9 sm:h-10 w-full text-xs sm:text-sm">
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder={activeTab === 'assets' ? 'All Types' : 'All Categories'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {expense_categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
+                  {activeTab === 'assets' ? (
+                    <>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                      <SelectItem value="common">Common</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {expense_categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -543,7 +569,7 @@ export default function AdminMaintenancePage() {
       </Card>
 
       {/* Tabs for Maintenance, Purchases, and Scrap Requests */}
-      <Tabs defaultValue="maintenance" className="w-full  ">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full  ">
         <TabsList className='grid w-full grid-cols-2 md:grid-cols-5 max-sm:grid-cols-2 max-sm:my-10'>
           <TabsTrigger value="maintenance" className="flex items-center gap-2 ">
             <Settings className="h-4 w-4" />  
