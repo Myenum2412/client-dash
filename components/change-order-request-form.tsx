@@ -43,12 +43,23 @@ export function ChangeOrderRequestForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = controlledOnOpenChange || setInternalOpen
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    coNumber: string
+    project: string
+    projectNumber: string
+    description: string
+    priority: "low" | "medium" | "high" | "urgent"
+    requestedBy: string
+    requestedDate: string
+    requiredDate: string
+    revisionTime: string
+    notes: string
+  }>({
     coNumber: "",
     project: "",
     projectNumber: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium",
     requestedBy: "",
     requestedDate: new Date().toISOString().split("T")[0],
     requiredDate: "",

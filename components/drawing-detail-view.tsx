@@ -1158,7 +1158,7 @@ export function DrawingDetailView({
                             </div>
                             {field.state.meta.errors.length > 0 && (
                               <p className="text-sm text-destructive">
-                                {field.state.meta.errors[0]}
+                                {String(field.state.meta.errors[0])}
                               </p>
                             )}
                             <p className="text-xs text-muted-foreground">

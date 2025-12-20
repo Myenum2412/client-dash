@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Validate request body
     const validation = validate(invoiceSchema, body)
-    if (!validation.success) {
+    if (validation.success === false) {
       return createValidationErrorResponse(validation.errors)
     }
 

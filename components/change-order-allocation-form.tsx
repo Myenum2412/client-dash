@@ -45,14 +45,29 @@ export function ChangeOrderAllocationForm({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
   const setOpen = controlledOnOpenChange || setInternalOpen
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    allocationNumber: string
+    requestId: string
+    coNumber: string
+    project: string
+    projectNumber: string
+    description: string
+    status: "allocated" | "in-transit" | "delivered" | "completed" | "cancelled"
+    allocatedTo: string
+    allocatedDate: string
+    expectedDeliveryDate: string
+    actualDeliveryDate: string
+    location: string
+    revisionTime: string
+    notes: string
+  }>({
     allocationNumber: "",
     requestId: "",
     coNumber: "",
     project: "",
     projectNumber: "",
     description: "",
-    status: "allocated" as const,
+    status: "allocated",
     allocatedTo: "",
     allocatedDate: new Date().toISOString().split("T")[0],
     expectedDeliveryDate: "",

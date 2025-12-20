@@ -23,6 +23,7 @@ export interface ChartDataItem {
   name: string
   value: number
   fill: string
+  [key: string]: string | number
 }
 
 export interface ChartPieDonutTextProps {

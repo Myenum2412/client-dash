@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChangeOrdersTable } from "@/components/change-orders-table";
@@ -288,12 +288,12 @@ export default function Projects({
   initialProjects?: any[];
 }) {
   return (
-    <>
+    <Suspense fallback={<div>Loading...</div>}>
       <ProjectContent 
         selectedProject={propSelectedProject} 
         filter={filter}
         initialProjects={initialProjects}
       />
-    </>
+    </Suspense>
   );
 }
