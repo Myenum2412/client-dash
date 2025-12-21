@@ -12,6 +12,7 @@ import { ProjectSelector } from "@/components/projects/project-selector";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { ProjectDrawingsSection } from "@/components/projects/project-drawings-section";
 import { motion } from "motion/react";
+import MaxWidthWrapper from "./MaxWidthWrapper";
 
 function ProjectContent({
   selectedProject: propSelectedProject,
@@ -228,11 +229,12 @@ function ProjectContent({
   const isProjectSelectedFromCard = projectIdFromUrl !== null;
 
   return (
-    <motion.main
+ <MaxWidthWrapper>
+     <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="flex-1 overflow-y-auto p-4 lg:p-6 my-4"
+      className="flex-1 overflow-y-auto p-4 lg:p-6 my-4 w-full"
     >
       <div className="space-y-6">
         {/* Project Selector - Only show if no project selected from file management card */}
@@ -275,6 +277,7 @@ function ProjectContent({
         </motion.div>
       </div>
     </motion.main>
+ </MaxWidthWrapper>
   );
 }
 

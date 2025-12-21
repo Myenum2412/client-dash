@@ -7,12 +7,15 @@ interface MeetingEmailRequest {
   dateTime: string
   description: string
   member: string
+  projectId?: string
+  projectNumber?: string
+  projectName?: string
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: MeetingEmailRequest = await request.json()
-    const { title, dateTime, description, member } = body
+    const { title, dateTime, description, member, projectId, projectNumber, projectName } = body
 
     if (!title || !dateTime || !description) {
       return createErrorResponse('Missing required fields: title, dateTime, or description', 400)
@@ -35,12 +38,16 @@ export async function POST(request: NextRequest) {
         },
       })
       
+      const projectText = projectName || projectNumber 
+        ? `\nProject: ${projectName || ''}${projectNumber ? ` (${projectNumber})` : ''}`
+        : ''
+
       // Send to client
       const clientInfo = await transporter.sendMail({
         from: testAccount.user,
         to: 'myenumam@gmail.com',
         subject: `Meeting Scheduled: ${title}`,
-        text: `Meeting: ${title}\nDate: ${new Date(dateTime).toLocaleString()}\nMember: ${member}\nDescription: ${description}`,
+        text: `Meeting: ${title}\nDate: ${new Date(dateTime).toLocaleString()}\nMember: ${member}${projectText}\nDescription: ${description}`,
       })
       
       // Send to admin
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
         from: testAccount.user,
         to: 'sathish@proultima.com',
         subject: `Meeting Scheduled: ${title}`,
-        text: `Meeting: ${title}\nDate: ${new Date(dateTime).toLocaleString()}\nMember: ${member}\nDescription: ${description}`,
+        text: `Meeting: ${title}\nDate: ${new Date(dateTime).toLocaleString()}\nMember: ${member}${projectText}\nDescription: ${description}`,
       })
       
       const clientTestUrl = nodemailer.getTestMessageUrl(clientInfo)
@@ -89,31 +96,72 @@ export async function POST(request: NextRequest) {
     })
 
     // Email content template
+    const projectSection = projectName || projectNumber ? `
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 15px; border-radius: 8px; margin: 15px 0; color: white;">
+        <p style="margin: 0; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Related Project</p>
+        ${projectName ? `<p style="margin: 5px 0 0 0; font-size: 16px; font-weight: 500;">${projectName}</p>` : ''}
+        ${projectNumber ? `<p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Project #${projectNumber}</p>` : ''}
+      </div>
+    ` : ''
+
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">New Meeting Scheduled</h2>
-        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #2563eb; margin-top: 0;">${title}</h3>
-          <p><strong>Date & Time:</strong> ${formattedDate}</p>
-          <p><strong>Member:</strong> ${member}</p>
-          <div style="margin-top: 20px;">
-            <p><strong>Description:</strong></p>
-            <p style="white-space: pre-wrap;">${description}</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Meeting Scheduled</h1>
+          </div>
+          
+          <!-- Content -->
+          <div style="padding: 30px;">
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); padding: 25px; border-radius: 12px; border-left: 4px solid #10b981; margin-bottom: 20px;">
+              <h2 style="color: #065f46; margin: 0 0 15px 0; font-size: 20px; font-weight: 600;">${title}</h2>
+              <div style="color: #047857; margin-top: 15px;">
+                <p style="margin: 8px 0; font-size: 14px;">
+                  <strong style="display: inline-block; width: 120px;">📅 Date & Time:</strong>
+                  <span style="font-weight: 500;">${formattedDate}</span>
+                </p>
+                <p style="margin: 8px 0; font-size: 14px;">
+                  <strong style="display: inline-block; width: 120px;">👤 Member:</strong>
+                  <span style="font-weight: 500;">${member}</span>
+                </p>
+              </div>
+            </div>
+            
+            ${projectSection}
+            
+            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #374151; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Description</h3>
+              <p style="color: #6b7280; margin: 0; white-space: pre-wrap; line-height: 1.6;">${description}</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                This is an automated notification from <strong style="color: #10b981;">Proultima</strong>
+              </p>
+            </div>
           </div>
         </div>
-        <p style="color: #666; font-size: 14px;">
-          This is an automated notification from Proultima.
-        </p>
-      </div>
+      </body>
+      </html>
     `
     
+    const projectText = projectName || projectNumber 
+      ? `\nRelated Project: ${projectName || ''}${projectNumber ? ` (${projectNumber})` : ''}\n`
+      : ''
+
     const emailText = `
 New Meeting Scheduled
 
 Title: ${title}
 Date & Time: ${formattedDate}
-Member: ${member}
-
+Member: ${member}${projectText}
 Description:
 ${description}
 

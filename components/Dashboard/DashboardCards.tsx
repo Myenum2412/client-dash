@@ -6,22 +6,28 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { Project } from "./types";
 
-interface ProjectSelectorProps {
-  projects: Project[];
-  currentProject: Project | null;
-  onProjectSelect: (project: Project) => void;
+export interface DashboardCardData {
+  id: string;
+  title: string;
+  value: string;
 }
 
-export function ProjectSelector({
-  projects,
-  currentProject,
-  onProjectSelect,
-}: ProjectSelectorProps) {
+const dashboardCards: DashboardCardData[] = [
+  { id: "total-projects", title: "Total Projects", value: "2" },
+  { id: "detailing-in-process", title: "Detailing In Process", value: "1" },
+  { id: "revision-in-process", title: "Revision In Process", value: "2" },
+  { id: "released-jobs", title: "Released Jobs", value: "1" },
+  { id: "yet-to-detailed-tons", title: "Yet to be Detailed Tons", value: "180.00 Tons" },
+  { id: "job-availability", title: "Job Availability", value: "49%" },
+  { id: "outstanding-amount", title: "Out Standing Amount", value: "Rs. 10,000" },
+];
+
+export function DashboardCards() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   // Check scroll position to show/hide navigation arrows
   const checkScrollPosition = () => {
@@ -51,12 +57,12 @@ export function ProjectSelector({
     }
   };
 
-  // Check scroll position on mount and when projects change
+  // Check scroll position on mount and when cards change
   useEffect(() => {
     checkScrollPosition();
-    const timer = setTimeout(checkScrollPosition, 100); // Small delay to ensure DOM is ready
+    const timer = setTimeout(checkScrollPosition, 100);
     return () => clearTimeout(timer);
-  }, [projects]);
+  }, [dashboardCards]);
 
   // Update scroll position on scroll
   useEffect(() => {
@@ -71,6 +77,11 @@ export function ProjectSelector({
     }
   }, []);
 
+  // Handle card click
+  const handleCardClick = (cardId: string) => {
+    setSelectedCardId(selectedCardId === cardId ? null : cardId);
+  };
+
   return (
     <div
       className="px-4 lg:px-6 py-6 relative bg-cover bg-center bg-no-repeat rounded-lg"
@@ -79,12 +90,12 @@ export function ProjectSelector({
         minHeight: "200px",
       }}
     >
-      <div className="absolute inset-0 bg-background/10 dark:bg-background/10 rounded-lg z-0 "></div>
+      <div className="absolute inset-0 bg-background/10 dark:bg-background/10 rounded-lg z-0"></div>
 
       <div className="relative z-10">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">
-            Project Selector
+            Dashboard Overview
           </h1>
         </div>
 
@@ -109,12 +120,12 @@ export function ProjectSelector({
             className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 -mx-2 px-2"
             onScroll={checkScrollPosition}
           >
-            {projects.map((project, index) => {
-              const isSelected = currentProject?.id === project.id;
+            {dashboardCards.map((card, index) => {
+              const isSelected = selectedCardId === card.id;
               
               return (
                 <motion.div
-                  key={project.id}
+                  key={card.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ 
@@ -133,27 +144,24 @@ export function ProjectSelector({
                         ? "bg-gray-900 text-white border-gray-700 shadow-lg"
                         : "bg-white text-gray-900 border-gray-200 hover:border-gray-300 hover:shadow-md"
                     )}
-                    onClick={() => onProjectSelect(project)}
+                    onClick={() => handleCardClick(card.id)}
                   >
                     <CardContent className="h-full flex flex-col justify-between p-4">
-                      {/* Project Number */}
                       <div
                         className={cn(
-                          "text-lg font-semibold transition-colors",
+                          "text-lg font-semibold transition-colors -mt-4",
                           isSelected ? "text-white" : "text-gray-900"
                         )}
                       >
-                        {project.projectNumber}
+                        {card.title}
                       </div>
-
-                      {/* Project Name */}
                       <div
                         className={cn(
-                          "text-sm mt-1 leading-snug transition-colors",
-                          isSelected ? "text-white/80" : "text-gray-700"
+                          "text-4xl font-semibold transition-colors",
+                          isSelected ? "text-white" : "text-gray-700"
                         )}
                       >
-                        {project.projectName}
+                        {card.value}
                       </div>
                     </CardContent>
                   </Card>
@@ -179,4 +187,3 @@ export function ProjectSelector({
     </div>
   );
 }
-

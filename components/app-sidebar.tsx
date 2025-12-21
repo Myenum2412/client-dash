@@ -52,8 +52,13 @@ const data = {
   navMain: [
    
     {
-      title: "Projects",
+      title: "Dashboard",
       url: "/",
+      icon: Home,
+    },
+    {
+      title: "Projects",
+      url: "/projects",
       icon: Folder,
     },
    
