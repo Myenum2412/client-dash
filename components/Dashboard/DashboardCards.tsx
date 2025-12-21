@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { EvaluationLogDialog } from "./EvaluationLogDialog";
 
 export interface DashboardCardData {
   id: string;
@@ -28,6 +29,7 @@ export function DashboardCards() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [isEvaluationLogOpen, setIsEvaluationLogOpen] = useState(false);
 
   // Check scroll position to show/hide navigation arrows
   const checkScrollPosition = () => {
@@ -79,6 +81,12 @@ export function DashboardCards() {
 
   // Handle card click
   const handleCardClick = (cardId: string) => {
+    // Open Evaluation Log dialog for "Yet to be Detailed Tons" card
+    if (cardId === "yet-to-detailed-tons") {
+      setIsEvaluationLogOpen(true);
+      return;
+    }
+    // Toggle selection for other cards
     setSelectedCardId(selectedCardId === cardId ? null : cardId);
   };
 
@@ -184,6 +192,12 @@ export function DashboardCards() {
           )}
         </div>
       </div>
+
+      {/* Evaluation Log Dialog */}
+      <EvaluationLogDialog
+        open={isEvaluationLogOpen}
+        onOpenChange={setIsEvaluationLogOpen}
+      />
     </div>
   );
 }

@@ -3,10 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, MapPin } from "lucide-react";
-import Link from "next/link";
 import type { Project } from "./types";
 import { getStatusColor } from "./utils";
 import { EvaluationLogForm } from "@/components/evaluation-log-form";
+import { EvaluationLogDialog } from "@/components/Dashboard/EvaluationLogDialog";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -17,6 +17,7 @@ interface ProjectOverviewProps {
 
 export function ProjectOverview({ project, onEvaluationLogClick }: ProjectOverviewProps) {
   const [isEvaluationFormOpen, setIsEvaluationFormOpen] = useState(false);
+  const [isEvaluationLogDialogOpen, setIsEvaluationLogDialogOpen] = useState(false);
 
   const handleEvaluationClick = () => {
     if (onEvaluationLogClick) {
@@ -24,6 +25,11 @@ export function ProjectOverview({ project, onEvaluationLogClick }: ProjectOvervi
     } else {
       setIsEvaluationFormOpen(true);
     }
+  };
+
+  const handleViewEvaluationLogClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsEvaluationLogDialogOpen(true);
   };
 
   return (
@@ -40,21 +46,19 @@ export function ProjectOverview({ project, onEvaluationLogClick }: ProjectOvervi
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{project.projectName}</span>
-                <Badge className={getStatusColor(project.status.detailing)}>
-                  {project.projectNumber}
-                </Badge>
+               
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
             >
               <div className="text-sm text-gray-500">Project Name</div>
               <div className="font-medium">{project.projectName}</div>
-            </motion.div>
+            </motion.div> */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -201,12 +205,12 @@ export function ProjectOverview({ project, onEvaluationLogClick }: ProjectOvervi
               transition={{ delay: 0.7 }}
             >
               <div className="text-sm text-gray-500">Evaluation Log</div>
-              <Link
-                href="/evaluation-log"
-                className="text-sm font-medium text-primary hover:underline transition-colors"
+              <button
+                onClick={handleViewEvaluationLogClick}
+                className="text-sm font-medium text-primary hover:underline transition-colors cursor-pointer"
               >
                 View Evaluation Log
-              </Link>
+              </button>
             </motion.div>
               </div>
             </CardContent>
@@ -221,6 +225,12 @@ export function ProjectOverview({ project, onEvaluationLogClick }: ProjectOvervi
         projectNumber={project.projectNumber}
         projectName={project.projectName}
         estimatedTons={project.estimatedTonnage || 0}
+      />
+
+      {/* Evaluation Log Dialog */}
+      <EvaluationLogDialog
+        open={isEvaluationLogDialogOpen}
+        onOpenChange={setIsEvaluationLogDialogOpen}
       />
     </>
   );
