@@ -11,6 +11,8 @@ import { convertSupabaseProject } from "@/components/projects/utils";
 import { ProjectSelector } from "@/components/projects/project-selector";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { ProjectDrawingsSection } from "@/components/projects/project-drawings-section";
+import { MaterialListManagementCard } from "@/components/projects/material-list-management-card";
+import { UpcomingSubmissionsTable } from "@/components/projects/upcoming-submissions-table";
 import { motion } from "motion/react";
 import MaxWidthWrapper from "./MaxWidthWrapper";
 
@@ -41,8 +43,10 @@ function ProjectContent({
   // Track if we've initialized the first project selection
   const hasInitializedRef = useRef<boolean>(false);
   // Track current project ID to avoid including currentProject in dependencies
-  const currentProjectIdRef = useRef<string | number | null>(currentProject?.id ?? null);
-  
+  const currentProjectIdRef = useRef<string | number | null>(
+    currentProject?.id ?? null
+  );
+
   // Update ref when currentProject changes
   useEffect(() => {
     currentProjectIdRef.current = currentProject?.id ?? null;
@@ -55,7 +59,10 @@ function ProjectContent({
         convertSupabaseProject
       );
       setProjects(convertedInitialProjects);
-      console.log("Total projects loaded (SSR):", convertedInitialProjects.length);
+      console.log(
+        "Total projects loaded (SSR):",
+        convertedInitialProjects.length
+      );
     }
   }, [initialProjects]);
 
@@ -66,7 +73,10 @@ function ProjectContent({
         convertSupabaseProject
       );
       setProjects(convertedSupabaseProjects);
-      console.log("Total projects loaded (client):", convertedSupabaseProjects.length);
+      console.log(
+        "Total projects loaded (client):",
+        convertedSupabaseProjects.length
+      );
     }
   }, [supabaseProjects, initialProjects]);
 
@@ -139,7 +149,7 @@ function ProjectContent({
           );
         return false;
       });
-      
+
       if (filteredProject) {
         const currentId = currentProjectIdRef.current;
         if (filteredProject.id !== currentId) {
@@ -160,7 +170,11 @@ function ProjectContent({
     }
 
     // Priority 4: Auto-select first project on initial load only
-    if (!hasInitializedRef.current && projects.length > 0 && currentProjectIdRef.current === null) {
+    if (
+      !hasInitializedRef.current &&
+      projects.length > 0 &&
+      currentProjectIdRef.current === null
+    ) {
       // Try to find "Valley View Business Park Tilt Panels" first, otherwise use first project
       const valleyViewProject = projects.find(
         (p) =>
@@ -171,19 +185,26 @@ function ProjectContent({
       currentProjectIdRef.current = projectToSelect.id;
       setCurrentProject(projectToSelect);
       hasInitializedRef.current = true;
-      console.log("Auto-selected initial project:", projectToSelect.projectNumber);
+      console.log(
+        "Auto-selected initial project:",
+        projectToSelect.projectNumber
+      );
     }
   }, [propSelectedProject, filter, projectIdFromUrl, projects]);
 
   // Handle manual project selection (user clicks a card)
   const handleProjectSelect = (project: Project) => {
-    console.log("Manual project selection:", project.projectNumber, project.projectName);
+    console.log(
+      "Manual project selection:",
+      project.projectNumber,
+      project.projectName
+    );
     // Set flag to prevent useEffect from overriding
     manualSelectionRef.current = true;
     // Update ref and state immediately
     currentProjectIdRef.current = project.id;
     setCurrentProject(project);
-    
+
     // Reset the flag after a brief moment to allow future useEffect runs
     setTimeout(() => {
       manualSelectionRef.current = false;
@@ -218,8 +239,8 @@ function ProjectContent({
         transition={{ duration: 0.3 }}
         className="text-center py-8 text-gray-500"
       >
-        {projects.length === 0 
-          ? "Loading project details..." 
+        {projects.length === 0
+          ? "Loading project details..."
           : "Please select a project"}
       </motion.div>
     );
@@ -229,34 +250,55 @@ function ProjectContent({
   const isProjectSelectedFromCard = projectIdFromUrl !== null;
 
   return (
- <MaxWidthWrapper>
-     <motion.main
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="flex-1 overflow-y-auto p-4 lg:p-6 my-4 w-full"
-    >
-      <div className="space-y-6">
-        {/* Project Selector - Only show if no project selected from file management card */}
-        {!isProjectSelectedFromCard && (
+    <MaxWidthWrapper>
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="flex-1 overflow-y-auto p-4 lg:p-6 my-4 w-full"
+      >
+        <div className="space-y-6">
+          {/* Project Selector - Only show if no project selected from file management card */}
+          {!isProjectSelectedFromCard && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <ProjectSelector
+                projects={projects}
+                currentProject={currentProject}
+                onProjectSelect={handleProjectSelect}
+              />
+            </motion.div>
+          )}
+
+          {/* Selected Project Overview */}
+          <ProjectOverview project={currentProject} />
+
+          {/* Material List Management */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: 0.3, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
           >
-            <ProjectSelector
-              projects={projects}
-              currentProject={currentProject}
-              onProjectSelect={handleProjectSelect}
+            <MaterialListManagementCard
+              blocks={currentProject.materialListManagement || []}
             />
           </motion.div>
-        )}
 
-        {/* Selected Project Overview */}
-        <ProjectOverview project={currentProject} />
+          {/* Drawings Section */}
+          <ProjectDrawingsSection project={currentProject} />
 
-        {/* Drawings Section */}
-        <ProjectDrawingsSection project={currentProject} />
+        {/* Upcoming Submissions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          className="overflow-x-hidden mt-5 max-w-[77vw]"
+        >
+          <UpcomingSubmissionsTable />
+        </motion.div>
 
         {/* Change Orders */}
         <motion.div
@@ -275,9 +317,9 @@ function ProjectContent({
             </CardContent>
           </Card>
         </motion.div>
-      </div>
-    </motion.main>
- </MaxWidthWrapper>
+        </div>
+      </motion.main>
+    </MaxWidthWrapper>
   );
 }
 
@@ -292,8 +334,8 @@ export default function Projects({
 }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ProjectContent 
-        selectedProject={propSelectedProject} 
+      <ProjectContent
+        selectedProject={propSelectedProject}
         filter={filter}
         initialProjects={initialProjects}
       />

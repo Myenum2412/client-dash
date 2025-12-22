@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import type { MaterialListBlock } from "./material-list-management-card";
 
 export interface Project {
   id: number | string;
@@ -70,5 +71,6 @@ export interface Project {
     weeksSinceSent?: string;
     pdfPath?: string;
   }[];
+  materialListManagement?: MaterialListBlock[];
 }
 
