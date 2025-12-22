@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { CheckCircle2, Eye } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ import {
 import { AccessoriesDialog } from "@/components/projects/accessories-dialog";
 import { CouplersFormSaversDialog } from "@/components/projects/couplers-form-savers-dialog";
 import { motion } from "framer-motion";
-import { getDummyMaterialListManagement } from "@/components/projects/utils";
 
 export type MaterialListBarListRow = {
   id?: string;
@@ -48,20 +47,12 @@ export function MaterialListManagementCard({
   blocks,
 }: {
   title?: string;
-  blocks?: MaterialListBlock[];
+  blocks: MaterialListBlock[];
 }) {
   const [isAccessoriesOpen, setIsAccessoriesOpen] = useState(false);
   const [isCouplersFormSaversOpen, setIsCouplersFormSaversOpen] = useState(false);
 
-  // 🚀 OPTIMIZATION: Lazy load dummy data only when component renders
-  const materialBlocks = useMemo(() => {
-    if (blocks && blocks.length > 0) return blocks;
-    
-    // Import and generate dummy data lazily
-    return getDummyMaterialListManagement();
-  }, [blocks]);
-
-  if (!materialBlocks.length) return null;
+  if (!blocks.length) return null;
 
   return (
     <motion.div
@@ -75,8 +66,8 @@ export function MaterialListManagementCard({
         </CardHeader>
 
         <CardContent className="pt-6">
-              <div className="flex flex-col gap-10">
-                {materialBlocks.map((block, idx) => (
+          <div className="flex flex-col gap-10">
+            {blocks.map((block, idx) => (
               <motion.div
                 key={block.id ?? block.heading}
                 initial={{ opacity: 0, y: 10 }}
@@ -216,7 +207,7 @@ export function MaterialListManagementCard({
                   })}
                 </div>
 
-                    {idx < materialBlocks.length - 1 ? <Separator className="mt-10" /> : null}
+                {idx < blocks.length - 1 ? <Separator className="mt-10" /> : null}
               </motion.div>
             ))}
           </div>
