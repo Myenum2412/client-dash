@@ -464,7 +464,7 @@ export const demoDrawings = [
       totalWeightTons: 19.68,
       latestSubmittedDate: "2019-10-05",
       releaseStatus: "Released",
-      pdfPath: "/assets/U2524/Drawing-Log/R-10.pdf",
+      pdfPath: "https://drive.google.com/file/d/1IaaHjdtilI2Gwtd7B-c8Dv5Mn7uQYkTI/preview",
     },
     {
       jobNumber: "U2524",

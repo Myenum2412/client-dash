@@ -23,6 +23,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Download,
+  Filter,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,11 @@ export function DataTablePro<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     defaultColumn: { filterFn: stringIncludes },
+    initialState: {
+      pagination: {
+        pageSize: 20,
+      },
+    },
   });
 
   const searchColumn = searchColumnId
@@ -171,6 +177,7 @@ export function DataTablePro<TData, TValue>({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
+                <Filter className="mr-2 size-4" />
                 {filterLabel}
                 <ChevronDown className="ml-1 size-4 opacity-60" />
               </Button>
@@ -281,7 +288,7 @@ export function DataTablePro<TData, TValue>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[10, 20, 50].map((s) => (
+              {[20, 40, 60, 80, 100, 200, 400, 500].map((s) => (
                 <SelectItem key={s} value={String(s)}>
                   {s}
                 </SelectItem>

@@ -117,14 +117,26 @@ export function ProjectsPageClient({
               <button
                 key={p.id}
                 onClick={() => handleProjectClick(p.id)}
-                className={`min-w-[280px] rounded-xl border bg-background p-4 shadow-md hover:shadow-lg transition-shadow text-left ${
+                className={`min-w-[280px] rounded-xl border p-4 shadow-md hover:shadow-lg transition-all text-left ${
                   selectedProjectId === p.id
-                    ? "ring-2 ring-primary border-primary bg-background/80 backdrop-blur-sm"
-                    : ""
+                    ? "ring-2 ring-primary border-black/50 hover:scale-95 hover:shadow-lg transition-all shadow-accent-foreground bg-white"
+                    : "bg-background/80 border-primary/50  hover:bg-background/90"
                 }`}
               >
-                <div className="text-base font-semibold">{p.jobNumber}</div>
-                <div className="mt-2 text-sm text-muted-foreground">{p.name}</div>
+                <div
+                  className={`text-base font-semibold ${
+                    selectedProjectId === p.id ? "text-foreground" : ""
+                  }`}
+                >
+                  {p.jobNumber}
+                </div>
+                <div
+                  className={`mt-2 text-sm ${
+                    selectedProjectId === p.id ? "text-muted-foreground" : ""
+                  }`}
+                >
+                  {p.name}
+                </div>
               </button>
             ))
           ) : (
@@ -137,4 +149,3 @@ export function ProjectsPageClient({
     </div>
   );
 }
-

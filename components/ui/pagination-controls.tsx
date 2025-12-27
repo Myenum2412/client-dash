@@ -21,6 +21,7 @@ interface PaginationControlsProps {
   pageSizeOptions?: number[];
   showPageSizeSelector?: boolean;
   className?: string;
+  itemLabel?: string; // Label for items (e.g., "tasks", "items", "projects")
 }
 
 export function PaginationControls({
@@ -30,78 +31,86 @@ export function PaginationControls({
   totalPages,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 20, 50, 100],
+  pageSizeOptions = [20, 40, 60, 80, 100, 200, 400, 500],
   showPageSizeSelector = true,
   className,
+  itemLabel = "items",
 }: PaginationControlsProps) {
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = total === 0 ? 0 : Math.min(start + pageSize - 1, total);
 
   return (
-    <div className={`flex flex-col gap-4 md:flex-row md:items-center md:justify-between ${className || ""}`}>
-      {showPageSizeSelector && (
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">Rows per page</div>
-          <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-            <SelectTrigger className="w-20" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+    <div className={`flex flex-wrap items-center justify-between gap-4 ${className || ""}`}>
+      <div className="flex items-center gap-4">
+        {showPageSizeSelector && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page</span>
+            <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-      <div className="flex items-center gap-6 text-sm text-muted-foreground">
-        <div>
-          {start}-{end} of {total} records
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="whitespace-nowrap">
+            {start}-{end} of {total} {itemLabel}
+          </span>
+          <span className="whitespace-nowrap">
+            Page {total === 0 ? 0 : page} of {totalPages || 1}
+          </span>
         </div>
-        <div>
-          Page {total === 0 ? 0 : page} of {totalPages || 1}
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => onPageChange(1)}
-            disabled={page <= 1}
-            aria-label="First page"
-          >
-            <ChevronsLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            aria-label="Next page"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => onPageChange(totalPages)}
-            disabled={page >= totalPages}
-            aria-label="Last page"
-          >
-            <ChevronsRight className="size-4" />
-          </Button>
-        </div>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => onPageChange(1)}
+          disabled={page <= 1 || totalPages === 0}
+          aria-label="First page"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1 || totalPages === 0}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages || totalPages === 0}
+          aria-label="Next page"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => onPageChange(totalPages)}
+          disabled={page >= totalPages || totalPages === 0}
+          aria-label="Last page"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

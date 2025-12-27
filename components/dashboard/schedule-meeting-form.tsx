@@ -4,7 +4,7 @@ import * as React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CalendarIcon, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/utils/date-format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Widget,
+  WidgetContent,
+  WidgetTitle,
+} from "@/components/ui/widget";
 import { cn } from "@/lib/utils";
 import { demoProjects } from "@/public/assets";
 
@@ -38,6 +43,15 @@ type MeetingFormData = {
 export function ScheduleMeetingForm() {
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [showErrors, setShowErrors] = useState(false);
+  const [time, setTime] = useState(new Date());
+  const [selectedHour, setSelectedHour] = useState<number>(new Date().getHours() % 12 || 12);
+  const [selectedMinute, setSelectedMinute] = useState<number>(new Date().getMinutes());
+  const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">(
+    new Date().getHours() >= 12 ? "PM" : "AM"
+  );
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [timePopoverOpen, setTimePopoverOpen] = useState(false);
+  
   const {
     register,
     handleSubmit,
@@ -57,6 +71,55 @@ export function ScheduleMeetingForm() {
 
   const selectedDate = watch("date");
   const selectedMember = watch("member");
+
+  // Live clock update
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
+  const formatTime = (num: number) => String(num).padStart(2, "0");
+
+  const minutes = formatTime(time.getMinutes());
+  const hours = time.getHours() % 12 || 12;
+
+  const handleTimeSelection = () => {
+    // Convert 12-hour to 24-hour format
+    let hours24 = selectedHour;
+    if (selectedPeriod === "PM" && selectedHour !== 12) {
+      hours24 = selectedHour + 12;
+    } else if (selectedPeriod === "AM" && selectedHour === 12) {
+      hours24 = 0;
+    }
+    
+    const timeString = `${formatTime(hours24)}:${formatTime(selectedMinute)}`;
+    setSelectedTime(timeString);
+    setValue("time", timeString);
+    setTimePopoverOpen(false); // Close the popover
+  };
+
+  const handleUseCurrentTime = () => {
+    const now = new Date();
+    const currentHour = now.getHours() % 12 || 12;
+    const currentMinute = now.getMinutes();
+    const currentPeriod = now.getHours() >= 12 ? "PM" : "AM";
+    
+    setSelectedHour(currentHour);
+    setSelectedMinute(currentMinute);
+    setSelectedPeriod(currentPeriod);
+    
+    const hours24 = formatTime(now.getHours());
+    const mins = formatTime(now.getMinutes());
+    const timeString = `${hours24}:${mins}`;
+    setSelectedTime(timeString);
+    setValue("time", timeString);
+    setTimePopoverOpen(false); // Close the popover
+  };
 
   const projects = React.useMemo(
     () =>
@@ -95,9 +158,9 @@ export function ScheduleMeetingForm() {
   return (
     <Card className="w-full shadow-lg overflow-hidden">
       <CardHeader className="border-b">
-        <CardTitle className="text-lg font-semibold -mb-4">Schedule Meeting</CardTitle>
+        <CardTitle className="text-lg">Schedule Meeting</CardTitle>
       </CardHeader>
-      <CardContent >
+      <CardContent className="pt-4">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Meeting Title */}
           <div className="space-y-2">
@@ -126,7 +189,7 @@ export function ScheduleMeetingForm() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                    {selectedDate ? formatDate(selectedDate) : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -145,15 +208,115 @@ export function ScheduleMeetingForm() {
 
             <div className="space-y-2">
               <Label htmlFor="time">Time</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="time"
-                  type="time"
-                  className="pl-10"
-                  {...register("time", { required: "Time is required" })}
-                />
-              </div>
+              <Popover open={timePopoverOpen} onOpenChange={setTimePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedTime && "text-muted-foreground"
+                    )}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    {selectedTime || "Select time"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4" align="start">
+                  <div className="space-y-4">
+                    {/* Live Clock Widget */}
+                    <Widget>
+                      <WidgetContent className="flex-col gap-4">
+                        <WidgetTitle className="text-5xl tracking-widest">
+                          {hours}:{minutes}
+                        </WidgetTitle>
+                      </WidgetContent>
+                    </Widget>
+
+                    {/* Time Selection Controls */}
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Hour Selection */}
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Hour</Label>
+                          <Select
+                            value={selectedHour.toString()}
+                            onValueChange={(value) => setSelectedHour(parseInt(value))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                                <SelectItem key={hour} value={hour.toString()}>
+                                  {hour}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Minute Selection */}
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Minute</Label>
+                          <Select
+                            value={selectedMinute.toString()}
+                            onValueChange={(value) => setSelectedMinute(parseInt(value))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+                                <SelectItem key={minute} value={minute.toString()}>
+                                  {formatTime(minute)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* AM/PM Selection */}
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Period</Label>
+                          <Select
+                            value={selectedPeriod}
+                            onValueChange={(value: "AM" | "PM") => setSelectedPeriod(value)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleUseCurrentTime}
+                          className="flex-1"
+                        >
+                          Current Time
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleTimeSelection}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          Set Time
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               {errors.time && (
                 <p className="text-sm text-red-500">{errors.time.message}</p>
               )}

@@ -5,7 +5,7 @@
 
 // @ts-nocheck - Temporary bypass for Supabase type generation issues
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database, Project, DrawingLog, DrawingYetToRelease, DrawingYetToReturn, Invoice, Submission, ProjectInsert, ProjectUpdate } from '@/lib/database.types'
+import { Database, Project, DrawingLog, DrawingYetToRelease, DrawingYetToReturn, Invoice, Submission, ChangeOrder, ProjectInsert, ProjectUpdate } from '@/lib/database.types'
 
 type SupabaseClientType = SupabaseClient<Database>
 
@@ -395,5 +395,63 @@ export async function getProjectMetrics(supabase: SupabaseClientType, projectId:
     paidAmount,
     outstandingAmount: totalBilled - paidAmount,
   }
+}
+
+// ============================================================================
+// Change Orders Queries
+// ============================================================================
+
+export async function getChangeOrdersByProject(supabase: SupabaseClientType, projectId: string) {
+  const { data, error } = await supabase
+    .from('change_orders')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('submitted_date', { ascending: false })
+
+  if (error) throw error
+  return data as ChangeOrder[]
+}
+
+export async function getChangeOrderById(supabase: SupabaseClientType, changeOrderId: string) {
+  const { data, error } = await supabase
+    .from('change_orders')
+    .select('*')
+    .eq('id', changeOrderId)
+    .single()
+
+  if (error) throw error
+  return data as ChangeOrder
+}
+
+export async function createChangeOrder(supabase: SupabaseClientType, changeOrder: Partial<ChangeOrder>) {
+  const { data, error } = await supabase
+    .from('change_orders')
+    .insert(changeOrder)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ChangeOrder
+}
+
+export async function updateChangeOrder(supabase: SupabaseClientType, changeOrderId: string, updates: Partial<ChangeOrder>) {
+  const { data, error } = await supabase
+    .from('change_orders')
+    .update(updates)
+    .eq('id', changeOrderId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ChangeOrder
+}
+
+export async function deleteChangeOrder(supabase: SupabaseClientType, changeOrderId: string) {
+  const { error } = await supabase
+    .from('change_orders')
+    .delete()
+    .eq('id', changeOrderId)
+
+  if (error) throw error
 }
 

@@ -1,15 +1,24 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Printer, Download } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ReleaseStatusBadge, type ReleaseStatus } from "@/components/projects/release-status-selector";
 import {
   billingInvoiceColumns,
   type BillingInvoiceRow,
 } from "@/components/billing/invoice-columns";
+import { getSubmissionTypeColor } from "@/lib/utils/submission-colors";
+import { formatDate } from "@/lib/utils/date-format";
+import { exportChangeOrderToPDF, exportChangeOrderToCSV } from "@/lib/utils/change-order-export";
 
 // Normalize various release status values to the two standard options
 function normalizeReleaseStatus(status: string): ReleaseStatus {
@@ -76,42 +85,66 @@ export type ChangeOrderRow = {
 
 function statusPill(label: string) {
   const normalized = label.toLowerCase();
-  if (normalized.includes("app")) {
+  const upper = label.toUpperCase().trim();
+  
+  // APP status - Yellow (Approval)
+  if (upper === "APP" || normalized.includes("approval")) {
     return (
-      <Badge className="bg-blue-100 text-blue-700 border-transparent">
+      <Badge className="bg-yellow-100 text-yellow-800 border-transparent dark:bg-yellow-900 dark:text-yellow-200">
         {label}
       </Badge>
     );
   }
+  
+  // RR status - Orange (Review & Return)
+  if (upper === "RR" || upper.includes("R&R") || normalized.includes("review") || normalized.includes("return")) {
+    return (
+      <Badge className="bg-orange-100 text-orange-800 border-transparent dark:bg-orange-900 dark:text-orange-200">
+        {label}
+      </Badge>
+    );
+  }
+  
+  // FFU status - Green (For Field Use)
+  if (upper === "FFU" || normalized.includes("field use") || normalized.includes("for field")) {
+    return (
+      <Badge className="bg-green-100 text-green-800 border-transparent dark:bg-green-900 dark:text-green-200">
+        {label}
+      </Badge>
+    );
+  }
+  
+  // Other statuses
   if (normalized.includes("paid") || normalized.includes("success")) {
     return (
-      <Badge className="bg-emerald-100 text-emerald-700 border-transparent">
+      <Badge className="bg-emerald-100 text-emerald-700 border-transparent dark:bg-emerald-900 dark:text-emerald-200">
         {label}
       </Badge>
     );
   }
   if (normalized.includes("open") || normalized.includes("due") || normalized.includes("pending")) {
     return (
-      <Badge className="bg-amber-100 text-amber-800 border-transparent">
+      <Badge className="bg-amber-100 text-amber-800 border-transparent dark:bg-amber-900 dark:text-amber-200">
         {label}
       </Badge>
     );
   }
   if (normalized.includes("reject") || normalized.includes("fail")) {
     return (
-      <Badge className="bg-red-100 text-red-700 border-transparent">
+      <Badge className="bg-red-100 text-red-700 border-transparent dark:bg-red-900 dark:text-red-200">
         {label}
       </Badge>
     );
   }
   return (
-    <Badge className="bg-zinc-100 text-zinc-700 border-transparent">
+    <Badge className="bg-zinc-100 text-zinc-700 border-transparent dark:bg-zinc-900 dark:text-zinc-200">
       {label}
     </Badge>
   );
 }
 
-export const drawingsColumns: ColumnDef<DrawingsRow>[] = [
+export const drawingsColumns = (): ColumnDef<DrawingsRow>[] => {
+  const baseColumns: ColumnDef<DrawingsRow>[] = [
   {
     accessorKey: "dwgNo",
     header: ({ column }) => (
@@ -152,7 +185,7 @@ export const drawingsColumns: ColumnDef<DrawingsRow>[] = [
   {
     accessorKey: "latestSubmittedDate",
     header: "Latest Submitted Date",
-    cell: ({ row }) => <div>{String(row.getValue("latestSubmittedDate"))}</div>,
+    cell: ({ row }) => <div>{formatDate(row.getValue("latestSubmittedDate"))}</div>,
     meta: { align: "center" },
   },
   {
@@ -204,20 +237,114 @@ export const drawingsColumns: ColumnDef<DrawingsRow>[] = [
       ],
     },
   },
-];
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }: { row: { original: DrawingsRow } }) => {
+      const pdfPath = (row.original as any).pdfPath;
+      
+      const handlePrint = () => {
+        if (pdfPath) {
+          // Open PDF in new window for printing
+          const printWindow = window.open(pdfPath, '_blank');
+          if (printWindow) {
+            printWindow.onload = () => {
+              printWindow.print();
+            };
+          }
+        } else {
+          alert("No PDF file available for this drawing");
+        }
+      };
+
+      const handleDownload = () => {
+        if (pdfPath) {
+          // Create temporary link to download file
+          const link = document.createElement('a');
+          link.href = pdfPath;
+          link.download = `${row.original.dwgNo}.pdf`;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert("No PDF file available for this drawing");
+        }
+      };
+
+      return (
+        <div className="flex items-center justify-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrint();
+                  }}
+                  className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                  disabled={!pdfPath}
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Print Drawing</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload();
+                  }}
+                  className="h-8 w-8 p-0 hover:bg-emerald-50 hover:text-emerald-600"
+                  disabled={!pdfPath}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download Drawing</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    },
+    meta: { align: "center" },
+    enableSorting: false,
+    enableHiding: false,
+  },
+  ];
+
+  return baseColumns;
+};
 
 export const drawingLogColumns: ColumnDef<DrawingLogRow>[] = [
   { accessorKey: "dwgNo", header: "DWG #", cell: ({ row }) => <div className="font-medium">{row.getValue("dwgNo")}</div> },
   { accessorKey: "event", header: "Event" },
-  { accessorKey: "date", header: "Date" },
+  { 
+    accessorKey: "date", 
+    header: "Date",
+    cell: ({ row }) => <div>{formatDate(row.getValue("date"))}</div>,
+  },
   { accessorKey: "by", header: "By" },
   { accessorKey: "notes", header: "Notes" },
 ];
 
 export const invoiceColumns: ColumnDef<InvoiceRow>[] = [
   // Reuse the exact Billing page invoice table columns/heading layout
-  // Note: billingInvoiceColumns is now a function, call it with a no-op callback
-  ...(billingInvoiceColumns(() => {}) as ColumnDef<InvoiceRow>[]),
+  // Note: billingInvoiceColumns is now a function that takes no arguments
+  ...(billingInvoiceColumns() as ColumnDef<InvoiceRow>[]),
 ];
 
 export const upcomingSubmissionColumns: ColumnDef<SubmissionRow>[] = [
@@ -242,7 +369,14 @@ export const upcomingSubmissionColumns: ColumnDef<SubmissionRow>[] = [
   {
     accessorKey: "submissionType",
     header: "SUBMISSION TYPE",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("submissionType")}</div>,
+    cell: ({ row }) => {
+      const type = row.getValue("submissionType") as string;
+      return (
+        <Badge className={getSubmissionTypeColor(type)}>
+          {type}
+        </Badge>
+      );
+    },
     meta: { align: "center" },
   },
   {
@@ -260,32 +394,115 @@ export const upcomingSubmissionColumns: ColumnDef<SubmissionRow>[] = [
   {
     accessorKey: "submissionDate",
     header: "SUBMISSION DATE",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("submissionDate")}</div>,
+    cell: ({ row }) => <div className="font-medium">{formatDate(row.getValue("submissionDate"))}</div>,
     meta: { align: "center" },
   },
 ];
 
+// Handler functions for change order actions
+const handlePrintChangeOrder = async (changeOrder: ChangeOrderRow) => {
+  try {
+    await exportChangeOrderToPDF(changeOrder, '/image/logo.png');
+  } catch (error) {
+    console.error('Error printing change order:', error);
+    alert('Failed to generate PDF. Please try again.');
+  }
+};
+
+const handleDownloadChangeOrder = (changeOrder: ChangeOrderRow) => {
+  try {
+    exportChangeOrderToCSV(changeOrder);
+  } catch (error) {
+    console.error('Error downloading change order:', error);
+    alert('Failed to download CSV. Please try again.');
+  }
+};
+
 export const changeOrderColumns: ColumnDef<ChangeOrderRow>[] = [
   {
     accessorKey: "changeOrderId",
-    header: "Change Order ID",
+    header: "CO #",
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("changeOrderId")}</div>
     ),
+    meta: { align: "center" },
   },
-  { accessorKey: "description", header: "Description" },
+  { 
+    accessorKey: "date", 
+    header: "Submission Date",
+    cell: ({ row }) => <div>{formatDate(row.getValue("date"))}</div>,
+    meta: { align: "center" },
+  },
+  { 
+    accessorKey: "description", 
+    header: "Drawing No",
+    cell: ({ row }) => <div className="font-medium">{row.getValue("description")}</div>,
+    meta: { align: "center" },
+  },
   {
     accessorKey: "hours",
-    header: () => <div className="text-right">Hours</div>,
+    header: "Hours",
     cell: ({ row }) => (
-      <div className="text-right font-medium">{Number(row.getValue("hours")).toFixed(1)}</div>
+      <div className="font-medium">{Number(row.getValue("hours")).toFixed(1)}</div>
     ),
+    meta: { align: "center" },
   },
-  { accessorKey: "date", header: "Date" },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => statusPill(String(row.getValue("status"))),
+    meta: { align: "center" },
+  },
+  {
+    id: "actions",
+    header: "Action",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrintChangeOrder(row.original);
+                }}
+                className="h-8 w-8"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Print Change Order</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadChangeOrder(row.original);
+                }}
+                className="h-8 w-8"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Download as CSV</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    ),
+    meta: { align: "center" },
+    enableSorting: false,
+    enableHiding: false,
   },
 ];
 

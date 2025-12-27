@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatDate } from "@/lib/utils/date-format";
 
 export type DrawingRow = {
   id: string;
@@ -19,26 +20,26 @@ function statusBadge(status: DrawingRow["status"]) {
   switch (status) {
     case "APP":
       return (
-        <Badge className="bg-blue-100 text-blue-700 border-transparent">
+        <Badge className="bg-yellow-100 text-yellow-800 border-transparent dark:bg-yellow-900 dark:text-yellow-200">
           APP
         </Badge>
       );
     case "REV":
       return (
-        <Badge className="bg-amber-100 text-amber-800 border-transparent">
+        <Badge className="bg-amber-100 text-amber-800 border-transparent dark:bg-amber-900 dark:text-amber-200">
           REV
         </Badge>
       );
     case "REJ":
       return (
-        <Badge className="bg-red-100 text-red-700 border-transparent">
+        <Badge className="bg-red-100 text-red-700 border-transparent dark:bg-red-900 dark:text-red-200">
           REJ
         </Badge>
       );
     case "PND":
     default:
       return (
-        <Badge className="bg-zinc-100 text-zinc-700 border-transparent">
+        <Badge className="bg-zinc-100 text-zinc-700 border-transparent dark:bg-zinc-900 dark:text-zinc-200">
           PND
         </Badge>
       );
@@ -95,7 +96,7 @@ export const drawingsColumns: ColumnDef<DrawingRow>[] = [
   {
     accessorKey: "latestSubmittedDate",
     header: "Latest Submitted Date",
-    cell: ({ row }) => <div>{row.getValue("latestSubmittedDate")}</div>,
+    cell: ({ row }) => <div>{formatDate(row.getValue("latestSubmittedDate"))}</div>,
   },
   {
     accessorKey: "weeksSinceSent",

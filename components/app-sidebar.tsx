@@ -8,6 +8,8 @@ import {
   Folder,
   MessageCircle,
   Upload,
+  FileText,
+  FolderKanban,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -43,23 +45,35 @@ const data = {
       url: "/dashboard",
       icon: Home,
       isActive: true,
-        },
-        {
+    },
+    {
       title: "Projects",
       url: "/projects",
-      icon: Folder,
+      icon: FolderKanban,
+      items: [
+        {
+          title: "RFI",
+          url: "/rfi",
+          icon: FileText,
         },
         {
+          title: "Files",
+          url: "/files",
+          icon: Folder,
+        },
+      ],
+    },
+    {
       title: "Submissions",
       url: "/submissions",
       icon: Upload,
-        },
-        {
+    },
+    {
       title: "Billing & Invoices",
       url: "/billing",
       icon: CreditCard,
-        },
-        {
+    },
+    {
       title: "Chat",
       url: "/chat",
       icon: MessageCircle,

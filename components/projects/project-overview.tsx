@@ -68,7 +68,7 @@ export function ProjectOverview({ data }: { data: ProjectOverviewData }) {
   const releasedPct = pct(released, estimated);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-none">
       <CardContent >
         <div className="flex items-start justify-between gap-4">
           <div>

@@ -24,6 +24,10 @@ export const queryKeys = {
   submissions: () => ["submissions"] as const,
   submission: (submissionId: string) => ["submissions", submissionId] as const,
   
+  // RFI
+  rfi: () => ["rfi"] as const,
+  rfiItem: (rfiId: string) => ["rfi", rfiId] as const,
+  
   // Projects
   projects: () => ["projects"] as const,
   project: (projectId: string) => ["projects", projectId] as const,
@@ -35,6 +39,10 @@ export const queryKeys = {
   // Chat
   chatMessages: (projectId?: string) =>
     ["chat", "messages", projectId ?? "global"] as const,
+  
+  // Files
+  directory: (path: string) => ["files", "directory", path] as const,
+  fileTree: () => ["files", "tree"] as const,
   
   // Search
   search: (query: string) => ["search", query] as const,

@@ -24,7 +24,12 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Download,
-  Eye,
+  Filter,
+  Search,
+  X,
+  FileSpreadsheet,
+  FileText,
+  CheckSquare,
 } from "@/lib/utils/icon-imports";
 
 import { Button } from "@/components/ui/button";
@@ -59,6 +64,12 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { exportTableData, type ExportFormat } from "@/lib/utils/export-utils";
+import {
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 
 type Align = "left" | "center" | "right";
 type ColumnMeta = {
@@ -117,11 +128,13 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
   exportFilename = "export.csv",
   renderFilterMenu,
   headerClassName = "bg-emerald-50/70",
-  pageSizes = [10, 20, 50],
+  pageSizes = [20, 40, 60, 80, 100, 200, 400, 500],
   onRowClick,
+  onViewDetails,
   isLoading,
   pagination,
   enablePdfExport = false,
+  defaultColumnVisibility = {},
 }: {
   title: string;
   data: TData[];
@@ -132,16 +145,19 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
   headerClassName?: string;
   pageSizes?: number[];
   onRowClick?: (row: TData) => void;
+  onViewDetails?: (row: TData) => void;
   isLoading?: boolean;
   pagination?: React.ReactNode;
   enablePdfExport?: boolean;
+  defaultColumnVisibility?: VisibilityState;
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(defaultColumnVisibility);
   const [rowSelection, setRowSelection] = React.useState({});
+  const [globalFilter, setGlobalFilter] = React.useState("");
 
   // Function to download PDF file
   const downloadPdf = React.useCallback((pdfPath: string, filename: string) => {
@@ -263,20 +279,46 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
     [selectionColumn, columns]
   );
 
+  // Global filter function that searches across all columns
+  const globalFilterFn: FilterFn<TData> = React.useCallback(
+    (row, columnId, filterValue) => {
+      const searchValue = String(filterValue ?? "").toLowerCase().trim();
+      if (!searchValue) return true;
+
+      // Search across all visible columns
+      return Object.entries(row.original).some(([key, value]) => {
+        if (value == null) return false;
+        const stringValue = String(value).toLowerCase();
+        return stringValue.includes(searchValue);
+      });
+    },
+    []
+  );
+
   const table = useReactTable({
     data,
     columns: columnsWithSelection,
-    state: { sorting, columnFilters, columnVisibility, rowSelection },
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: globalFilterFn,
     enableRowSelection: true,
     defaultColumn: { filterFn: stringIncludes },
+    initialState: {
+      pagination: {
+        pageSize: 20,
+      },
+    },
+    meta: {
+      onViewDetails,
+    },
   });
 
   const total = table.getFilteredRowModel().rows.length;
@@ -289,29 +331,124 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
     return { start, end };
   }, [total, pageIndex, pageSize]);
   
-  const handleExport = React.useCallback(() => {
-    const rows = table.getFilteredRowModel().rows.map((r) => r.original);
-    downloadText(exportFilename, toCsv(rows), "text/csv");
-  }, [table, exportFilename]);
+  const handleExport = React.useCallback(async (format: ExportFormat, selectedOnly: boolean = false) => {
+    const rows = selectedOnly
+      ? table.getSelectedRowModel().rows.map((r) => r.original)
+      : table.getFilteredRowModel().rows.map((r) => r.original);
+
+    if (rows.length === 0) {
+      alert(selectedOnly ? "No rows selected" : "No data to export");
+      return;
+    }
+
+    // Remove internal columns (select, actions)
+    const cleanedRows = rows.map((row) => {
+      const { select, actions, ...rest } = row as any;
+      return rest;
+    });
+
+    // Get base filename without extension
+    const baseFilename = exportFilename.replace(/\.[^/.]+$/, "");
+    const selectionSuffix = selectedOnly ? "_selected" : "_all";
+
+    await exportTableData(cleanedRows, {
+      filename: `${baseFilename}${selectionSuffix}`,
+      format,
+      title,
+      projectName: undefined, // Can be passed as prop if needed
+    });
+  }, [table, exportFilename, title]);
 
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardAction className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-          >
-            <Download className="size-4" />
-            Export All
-          </Button>
+        <div className="flex items-center justify-between gap-4 w-full">
+          {/* Title */}
+          <CardTitle className="text-base shrink-0">{title}</CardTitle>
+          
+          {/* Centered Search Box */}
+          <div className="relative flex-1 max-w-sm mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search across all columns..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-9 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {globalFilter && (
+              <button
+                onClick={() => setGlobalFilter("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Eye className="mr-2 size-4" />
-                Columns
+          {/* Action Buttons */}
+          <CardAction className="flex items-center gap-2 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="shrink-0">
+                  <Download className="size-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export</span>
+                  <ChevronDown className="ml-1 size-4 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                    All Records ({total})
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleExport("csv", false)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>Export All as CSV</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("excel", false)}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    <span>Export All as Excel</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("pdf", false)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>Export All as PDF</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+
+                {Object.keys(rowSelection).length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                        Selected Records ({Object.keys(rowSelection).length})
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => handleExport("csv", true)}>
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        <span>Export Selected as CSV</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("excel", true)}>
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        <span>Export Selected as Excel</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport("pdf", true)}>
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        <span>Export Selected as PDF</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="shrink-0">
+                  <Filter className="size-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Filter</span>
                 <ChevronDown className="ml-1 size-4 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
@@ -377,8 +514,8 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-
-        </CardAction>
+          </CardAction>
+        </div>
       </CardHeader>
 
       <CardContent>

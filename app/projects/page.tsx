@@ -120,12 +120,12 @@ export default async function ProjectsPage({
         <div className=" flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
           <Card className="w-full shadow-lg overflow-hidden relative">
             <div className="absolute inset-0 h-full w-full bg-section opacity-70 " />
-            <CardHeader className="relative overflow-hidden">
+            <CardHeader className="relative overflow-hidden ">
               <div className="relative">
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-xl font-semibold text-white">
                   Project Drawings Overview
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/80">
                   Select a project to view drawings, submissions, invoices,
                   logs, and change orders
                 </p>
@@ -141,9 +141,9 @@ export default async function ProjectsPage({
           </Card>
 
           {/* Show selected project details */}
-          <Card className="w-full shadow-lg overflow-hidden p-0">
-           
-            <CardContent className="p-0">
+          <Card className="w-full shadow-lg overflow-hidden relative p-0">
+       
+            <CardContent className="p-0 border-none">
               <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
                 <ProjectOverview data={overview} />
               </div>

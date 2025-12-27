@@ -9,6 +9,11 @@ import Image from "next/image";
 import { EvaluationLogDialog } from "@/components/dashboard/evaluation-log-dialog";
 import { ActiveProjectsDialog } from "@/components/dashboard/active-projects-dialog";
 import { OutstandingPaymentDialog } from "@/components/dashboard/outstanding-payment-dialog";
+import { DetailingProcessDialog } from "@/components/dashboard/detailing-process-dialog";
+import { RevisionProcessDialog } from "@/components/dashboard/revision-process-dialog";
+import { ReleasedJobsDialog } from "@/components/dashboard/released-jobs-dialog";
+import { JobAvailabilityDialog } from "@/components/dashboard/job-availability-dialog";
+import { ProjectAllocationButton } from "@/components/projects/project-allocation-button";
 import type { ProjectsListItem } from "@/app/api/projects/route";
 import type { BillingInvoiceRow } from "@/components/billing/invoice-columns";
 
@@ -17,6 +22,10 @@ export function DashboardMetrics() {
   const [isActiveProjectsOpen, setIsActiveProjectsOpen] = useState(false);
   const [isOutstandingPaymentOpen, setIsOutstandingPaymentOpen] =
     useState(false);
+  const [isDetailingProcessOpen, setIsDetailingProcessOpen] = useState(false);
+  const [isRevisionProcessOpen, setIsRevisionProcessOpen] = useState(false);
+  const [isReleasedJobsOpen, setIsReleasedJobsOpen] = useState(false);
+  const [isJobAvailabilityOpen, setIsJobAvailabilityOpen] = useState(false);
 
   // Fetch projects from Supabase
   const { data: projects = [] } = useQuery({
@@ -101,16 +110,22 @@ export function DashboardMetrics() {
       label: "Detailing in Process",
       value: detailingInProcess.toString(),
       unit: "",
+      clickable: true,
+      onClick: () => setIsDetailingProcessOpen(true),
     },
     {
       label: "Revision in Process",
       value: revisionInProcess.toString(),
       unit: "",
+      clickable: true,
+      onClick: () => setIsRevisionProcessOpen(true),
     },
     {
       label: "Released Jobs",
       value: releasedJobs.toString(),
       unit: "",
+      clickable: true,
+      onClick: () => setIsReleasedJobsOpen(true),
     },
     {
       label: "Yet to be Detailed Tons",
@@ -121,9 +136,11 @@ export function DashboardMetrics() {
     },
     {
       label: "Job Availability",
-      value: jobAvailability.toString(),
-      unit: "%",
+      value: "Call to Vel",
+      unit: "",
       labelColor: "text-green-700 dark:text-green-400",
+      clickable: true,
+      onClick: () => setIsJobAvailabilityOpen(true),
     },
     {
       label: "Outstanding Payment",
@@ -139,11 +156,14 @@ export function DashboardMetrics() {
     <Card className="w-full shadow-lg overflow-hidden relative ">
       <div className="absolute inset-0 h-full w-full bg-section opacity-70 " />
       <CardHeader className="relative overflow-hidden">
-        <div className="relative">
-          <h1 className="text-xl font-semibold">Dashboard Overview</h1>
-          <p className="text-sm text-muted-foreground">
-            Project metrics and statistics
-          </p>
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-white">Dashboard Overview</h1>
+            <p className="text-sm  text-white/80">
+              Project metrics and statistics
+            </p>
+          </div>
+          <ProjectAllocationButton />
         </div>
       </CardHeader>
       <CardContent >
@@ -200,6 +220,25 @@ export function DashboardMetrics() {
       <OutstandingPaymentDialog
         open={isOutstandingPaymentOpen}
         onOpenChange={setIsOutstandingPaymentOpen}
+      />
+      <DetailingProcessDialog
+        open={isDetailingProcessOpen}
+        onOpenChange={setIsDetailingProcessOpen}
+        projects={projects}
+      />
+      <RevisionProcessDialog
+        open={isRevisionProcessOpen}
+        onOpenChange={setIsRevisionProcessOpen}
+        projects={projects}
+      />
+      <ReleasedJobsDialog
+        open={isReleasedJobsOpen}
+        onOpenChange={setIsReleasedJobsOpen}
+        projects={projects}
+      />
+      <JobAvailabilityDialog
+        open={isJobAvailabilityOpen}
+        onOpenChange={setIsJobAvailabilityOpen}
       />
     </Card>
   );

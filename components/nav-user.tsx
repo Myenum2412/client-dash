@@ -7,6 +7,7 @@ import {
   Bell,
   ChevronsUpDown,
   CreditCard,
+  HelpCircle,
   LogOut,
   Sparkles,
 } from "lucide-react"
@@ -140,11 +141,16 @@ export function NavUser({
                 <CreditCard />
                 Account Information
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                <HelpCircle />
+                Helper
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
                 <Bell />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="flex items-center gap-2 cursor-pointer"

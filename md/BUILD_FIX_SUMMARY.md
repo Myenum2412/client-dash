@@ -107,4 +107,3 @@ The PDF editor components appear to be incomplete/experimental. Consider:
 The core Supabase integration for projects, drawings, invoices, and payments should work once the type issues are resolved.
 
 
-

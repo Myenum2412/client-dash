@@ -24,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Filter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -93,7 +94,8 @@ export function DataTable<TData, TValue>({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
-                Columns
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

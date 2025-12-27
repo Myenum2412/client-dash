@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getProjects } from "@/lib/supabase/queries";
+import { getProjects, createProject } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,8 @@ export type ProjectsListItem = {
   detailingStatus?: string | null;
   revisionStatus?: string | null;
   releaseStatus?: string | null;
+  createdAt?: string | null;
+  dueDate?: string | null;
 };
 
 export async function GET() {
@@ -31,6 +33,8 @@ export async function GET() {
       detailingStatus: p.detailing_status,
       revisionStatus: p.revision_status,
       releaseStatus: p.release_status,
+      createdAt: p.created_at,
+      dueDate: p.due_date,
     }));
 
     return NextResponse.json(items);
@@ -38,6 +42,77 @@ export async function GET() {
     console.error("Error fetching projects:", error);
     return NextResponse.json(
       { error: "Failed to fetch projects" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      projectName,
+      projectNumber,
+      dueDate,
+      assignedTo,
+      description,
+    } = body;
+
+    if (!projectName || !projectNumber) {
+      return NextResponse.json(
+        { error: "Project name and number are required" },
+        { status: 400 }
+      );
+    }
+
+    // Build description with assigned users
+    let finalDescription = description || "";
+    if (assignedTo && assignedTo.length > 0) {
+      finalDescription += (finalDescription ? "\n\n" : "") + `Assigned to: ${assignedTo.join(", ")}`;
+    }
+
+    // Create project in database
+    const project = await createProject(supabase, {
+      project_number: projectNumber,
+      project_name: projectName,
+      due_date: dueDate ? new Date(dueDate).toISOString().split("T")[0] : null,
+      detailing_status: "IN PROCESS",
+      revision_status: "IN PROCESS",
+      release_status: "IN PROCESS",
+      contractor_name: null, // Will use default from schema
+      estimated_tons: null,
+      released_tons: null,
+    });
+
+    return NextResponse.json({
+      success: true,
+      project: {
+        id: project.id,
+        jobNumber: project.project_number,
+        name: project.project_name,
+        estimatedTons: project.estimated_tons,
+        releasedTons: project.released_tons,
+        detailingStatus: project.detailing_status,
+        revisionStatus: project.revision_status,
+        releaseStatus: project.release_status,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating project:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to create project",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

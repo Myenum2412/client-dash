@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { CheckCircle2, Eye } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AccessoriesDialog } from "@/components/projects/accessories-dialog";
-import { CouplersFormSaversDialog } from "@/components/projects/couplers-form-savers-dialog";
 
 export type MaterialListBarListRow = {
   id?: string;
@@ -48,10 +45,6 @@ export function MaterialListManagementCard({
   title?: string;
   blocks: MaterialListBlock[];
 }) {
-  const [isAccessoriesOpen, setIsAccessoriesOpen] = useState(false);
-  const [isCouplersFormSaversOpen, setIsCouplersFormSaversOpen] =
-    useState(false);
-
   if (!blocks.length) return null;
 
   return (
@@ -97,14 +90,12 @@ export function MaterialListManagementCard({
                 </div>
               ) : null}
 
-              <div className="mt-8 text-base font-semibold">
-                Bar List Summary
-              </div>
+              <div className="mt-8 text-base font-semibold">Bar List Summary</div>
 
               <div className="mt-4 overflow-hidden rounded-lg border">
                 <Table>
-                  <TableHeader className="bg-background">
-                    <TableRow>
+                  <TableHeader>
+                    <TableRow className="bg-background">
                       <TableHead className="px-4 py-4">DWG #</TableHead>
                       <TableHead className="px-4 py-4">
                         Release Description
@@ -150,73 +141,13 @@ export function MaterialListManagementCard({
                 </Table>
               </div>
 
-              <div className="mt-8 text-base font-semibold">
-                Additional Fields
-              </div>
-              <div className="mt-4 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                {block.additionalFields.map((f) => {
-                  const labelLower = f.label.toLowerCase();
-                  const isAccessories = labelLower === "accessories";
-                  const isCouplersFormSavers =
-                    labelLower.includes("couplers") ||
-                    labelLower.includes("form savers");
-                  const isClickable = isAccessories || isCouplersFormSavers;
-
-                  return (
-                    <div
-                      key={f.id ?? f.label}
-                      className={
-                        isClickable
-                          ? "cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors"
-                          : ""
-                      }
-                      onClick={
-                        isClickable
-                          ? () => {
-                              if (isAccessories) setIsAccessoriesOpen(true);
-                              if (isCouplersFormSavers)
-                                setIsCouplersFormSaversOpen(true);
-                            }
-                          : undefined
-                      }
-                      role={isClickable ? "button" : undefined}
-                      tabIndex={isClickable ? 0 : undefined}
-                      onKeyDown={(e) => {
-                        if (
-                          isClickable &&
-                          (e.key === "Enter" || e.key === " ")
-                        ) {
-                          e.preventDefault();
-                          if (isAccessories) setIsAccessoriesOpen(true);
-                          if (isCouplersFormSavers)
-                            setIsCouplersFormSaversOpen(true);
-                        }
-                      }}
-                    >
-                      <div className="text-sm text-muted-foreground">
-                        {f.label}:
-                      </div>
-                      <div className="mt-1 text-base font-semibold">
-                        {f.value}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
               {idx < blocks.length - 1 ? <Separator className="mt-10" /> : null}
             </div>
           ))}
         </div>
       </CardContent>
-      <AccessoriesDialog
-        open={isAccessoriesOpen}
-        onOpenChange={setIsAccessoriesOpen}
-      />
-      <CouplersFormSaversDialog
-        open={isCouplersFormSaversOpen}
-        onOpenChange={setIsCouplersFormSaversOpen}
-      />
     </Card>
   );
 }
+
+

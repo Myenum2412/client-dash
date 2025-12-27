@@ -3,9 +3,16 @@
 import type { ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Column } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PayNowButton } from "./pay-now-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type BillingInvoiceRow = {
   id: string;
@@ -67,9 +74,7 @@ function MultilineLabel({
   );
 }
 
-export const billingInvoiceColumns = (
-  onOpenDrawer: (invoice: BillingInvoiceRow) => void
-): ColumnDef<BillingInvoiceRow>[] => [
+export const billingInvoiceColumns = (): ColumnDef<BillingInvoiceRow>[] => [
   {
     accessorKey: "invoiceNo",
     header: ({ column }) => (
@@ -79,6 +84,7 @@ export const billingInvoiceColumns = (
     ),
     cell: ({ row }) => <div className="font-medium">{row.getValue("invoiceNo")}</div>,
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     accessorKey: "projectNo",
@@ -109,18 +115,20 @@ export const billingInvoiceColumns = (
     ),
     cell: ({ row }) => <div className="font-medium">{row.getValue("projectName")}</div>,
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     accessorKey: "billedTonnage",
     header: ({ column }) => (
       <SortableHeader column={column}>
-        <MultilineLabel line1="Billed" line2="Tonnage" />
+        <MultilineLabel line1="Billing" line2="Tonnage" />
       </SortableHeader>
     ),
     cell: ({ row }) => (
       <div className="font-medium">{Number(row.getValue("billedTonnage")).toFixed(2)}</div>
     ),
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     accessorKey: "unitPriceOrLumpSum",
@@ -131,6 +139,7 @@ export const billingInvoiceColumns = (
     ),
     cell: ({ row }) => <div className="font-medium">{row.getValue("unitPriceOrLumpSum")}</div>,
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     accessorKey: "tonsBilledAmount",
@@ -153,6 +162,7 @@ export const billingInvoiceColumns = (
       <div className="font-medium">{Number(row.getValue("billedHoursCo")).toFixed(1)}</div>
     ),
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     accessorKey: "coPrice",
@@ -183,28 +193,40 @@ export const billingInvoiceColumns = (
     ),
     cell: ({ row }) => <div className="font-medium">{money.format(Number(row.getValue("totalAmountBilled")))}</div>,
     meta: { align: "center" },
+    enableHiding: false, // Always visible
   },
   {
     id: "actions",
-    header: () => <div className="text-center font-semibold">Action</div>,
-    cell: ({ row }) => {
-      const status = row.original.status; // Get status from row data
+    header: () => <div className="text-center font-semibold">Actions</div>,
+    cell: ({ row, table }) => {
+      const status = row.original.status;
       const canPay = status !== "Paid" && status !== "Cancelled";
       
+      // Get onViewDetails handler from table meta
+      const onViewDetails = (table.options.meta as any)?.onViewDetails;
+      
       return (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewDetails?.(row.original)}
+                  className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View Details</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {canPay ? (
-            <Button
-              size="sm"
-              variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent row click from also firing
-                onOpenDrawer(row.original); // Open drawer with this invoice
-              }}
-            >
-              Pay Now
-            </Button>
+            <PayNowButton invoice={row.original} />
           ) : (
             <span className="text-sm text-emerald-600 font-medium">✓ Paid</span>
           )}
@@ -213,7 +235,7 @@ export const billingInvoiceColumns = (
     },
     meta: { align: "center" },
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: false, // Always visible
   },
 ];
 

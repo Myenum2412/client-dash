@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { useSearch } from "@/hooks/use-search"
-import { useDebounce } from "@/hooks/use-debounce"
+import useDebounce from "@/hooks/use-debounce"
 
 interface SearchBoxProps {
   placeholder?: string

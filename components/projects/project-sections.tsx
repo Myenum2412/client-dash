@@ -8,6 +8,7 @@ import { fetchJson } from "@/lib/api/fetch-json";
 import { queryKeys } from "@/lib/query/keys";
 import { SectionTableCard } from "@/components/projects/section-table-card";
 import { DrawingPdfDialog } from "@/components/projects/drawing-pdf-dialog";
+import { InvoiceDetailsDialog } from "@/components/billing/invoice-details-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Dynamically import PDF viewer to avoid SSR issues with pdf.js
@@ -83,6 +84,14 @@ export function ProjectSections({ projectId }: { projectId: string }) {
     drawingId: undefined,
     dwgNo: undefined,
   });
+  
+  const [invoiceDetailsDialog, setInvoiceDetailsDialog] = useState<{
+    open: boolean;
+    invoice: InvoiceRow | null;
+  }>({
+    open: false,
+    invoice: null,
+  });
 
   const drawingsYetToReturn = useProjectSection<DrawingsRow>(
     projectId,
@@ -114,6 +123,14 @@ export function ProjectSections({ projectId }: { projectId: string }) {
       });
     }
   }, []);
+
+  const handleViewInvoiceDetails = useCallback((row: InvoiceRow) => {
+    setInvoiceDetailsDialog({
+      open: true,
+      invoice: row,
+    });
+  }, []);
+
 
   const handleSaveAnnotations = useCallback(async (annotations: any[], pdfBlob: Blob) => {
     if (!pdfDialog.drawingId) return;
@@ -175,12 +192,15 @@ export function ProjectSections({ projectId }: { projectId: string }) {
         query: drawingLog,
         columns: drawingsColumns,
         exportFilename: "drawing-log.csv",
+        onRowClick: handleDrawingLogRowClick,
       },
       {
         title: "Invoice History",
         query: invoiceHistory,
         columns: invoiceColumns,
         exportFilename: "invoice-history.csv",
+        onRowClick: handleViewInvoiceDetails, // Click anywhere on row to view details
+        onViewDetails: handleViewInvoiceDetails, // Also keep for the View Details button
       },
       {
         title: "Upcoming Submissions",
@@ -202,6 +222,8 @@ export function ProjectSections({ projectId }: { projectId: string }) {
       invoiceHistory.data,
       upcomingSubmissions.data,
       changeOrders.data,
+      handleDrawingLogRowClick,
+      handleViewInvoiceDetails,
     ]
   );
 
@@ -224,11 +246,14 @@ export function ProjectSections({ projectId }: { projectId: string }) {
                 <SectionTableCard
                   title={card.title}
                   data={getData(card.query) as any}
-                  columns={card.columns as any}
-                  exportFilename={card.exportFilename}
-                  onRowClick={
-                    card.title === "Drawing Log" ? handleDrawingLogRowClick : undefined
+                  columns={
+                    typeof card.columns === 'function'
+                      ? card.columns()
+                      : (card.columns as any)
                   }
+                  exportFilename={card.exportFilename}
+                  onRowClick={(card as any).onRowClick}
+                  onViewDetails={(card as any).onViewDetails}
                   enablePdfExport={card.title === "Drawing Log"}
                 />
               </div>
@@ -253,6 +278,14 @@ export function ProjectSections({ projectId }: { projectId: string }) {
           canManageRevisions: true,
           isViewOnly: false,
         }}
+      />
+
+      <InvoiceDetailsDialog
+        open={invoiceDetailsDialog.open}
+        onOpenChange={(open) =>
+          setInvoiceDetailsDialog((prev) => ({ ...prev, open }))
+        }
+        invoice={invoiceDetailsDialog.invoice}
       />
     </>
   );

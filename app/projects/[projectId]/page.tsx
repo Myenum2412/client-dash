@@ -12,6 +12,7 @@ import {
   type ProjectOverviewData,
 } from "@/components/projects/project-overview";
 import { ProjectMaterialListManagement } from "@/components/projects/material-list-management";
+import { ProjectDetailsComprehensive } from "@/components/projects/project-details-comprehensive";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth/server";
@@ -114,6 +115,11 @@ export default async function ProjectDetailPage({
           search={{ placeholder: "Search projects...", action: "/projects", name: "q" }}
         />
         <div className="min-h-0 flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
+          {/* Comprehensive Project Details */}
+          <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <ProjectDetailsComprehensive projectId={projectId} />
+          </div>
+
           {/* Project Overview */}
           <Card className="w-full shadow-lg overflow-hidden">
             <CardHeader className="relative overflow-hidden">

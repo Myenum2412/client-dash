@@ -7,6 +7,8 @@ import { fetchJson } from "@/lib/api/fetch-json";
 import { queryKeys } from "@/lib/query/keys";
 import { DashboardMetrics } from "@/components/dashboard/dashboard-metrics";
 import { ScheduleMeetingForm } from "@/components/dashboard/schedule-meeting-form";
+import { MeetingHistory } from "@/components/dashboard/meeting-history";
+import { AllocatedProjectsTable } from "@/components/dashboard/allocated-projects-table";
 
 type MeResponse = {
   id: string;
@@ -39,7 +41,15 @@ export function DashboardClient({ initialMe }: { initialMe: MeResponse }) {
         <div className="text-xs text-muted-foreground">Refreshing…</div>
       ) : null}
       <DashboardMetrics />
-      <ScheduleMeetingForm />
+      <AllocatedProjectsTable />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="lg:col-span-1">
+          <MeetingHistory />
+        </div>
+        <div className="lg:col-span-1">
+          <ScheduleMeetingForm />
+        </div>
+      </div>
     </div>
   );
 }

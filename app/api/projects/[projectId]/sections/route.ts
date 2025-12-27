@@ -7,7 +7,8 @@ import {
   getDrawingsYetToReleaseByProject, 
   getDrawingsYetToReturnByProject,
   getInvoicesByProjectNumber,
-  getSubmissionsByProject 
+  getSubmissionsByProject,
+  getChangeOrdersByProject
 } from "@/lib/supabase/queries";
 
 export const dynamic = "force-dynamic";
@@ -147,11 +148,33 @@ export async function GET(
       return NextResponse.json(paginated);
     }
 
-    // change_orders - Return empty for now (not in current data)
-    const mappedChangeOrders: any[] = [];
+    // change_orders - Fetch from Supabase
+    if (section === "change_orders") {
+      const changeOrders = await getChangeOrdersByProject(supabase, projectId);
 
-    // Return paginated response
-    const paginated = createPaginatedResponse(mappedChangeOrders, page, pageSize);
+      // Sort by submitted date (descending)
+      changeOrders.sort((a, b) => {
+        const dateA = new Date(a.submitted_date || 0).getTime();
+        const dateB = new Date(b.submitted_date || 0).getTime();
+        return dateB - dateA;
+      });
+
+      const mappedChangeOrders = changeOrders.map((co) => ({
+        id: co.id,
+        changeOrderId: co.change_order_id,
+        description: co.drawing_no, // Using drawing_no as description field
+        hours: co.hours,
+        date: co.submitted_date,
+        status: co.status,
+      }));
+
+      // Return paginated response
+      const paginated = createPaginatedResponse(mappedChangeOrders, page, pageSize);
+      return NextResponse.json(paginated);
+    }
+
+    // Fallback for unknown sections
+    const paginated = createPaginatedResponse([], page, pageSize);
     return NextResponse.json(paginated);
   } catch (error) {
     console.error("Error fetching project sections:", error);

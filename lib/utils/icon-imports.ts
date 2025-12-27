@@ -54,6 +54,8 @@ export {
   Filter,
   MoreVertical,
   MoreHorizontal,
+  FileSpreadsheet,
+  CheckSquare,
 } from "lucide-react";
 
 // Type for icon components

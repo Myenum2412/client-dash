@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useBillingInvoices } from "@/lib/hooks/use-api";
 import { SectionTableCard } from "@/components/projects/section-table-card";
 import {
   billingInvoiceColumns,
   type BillingInvoiceRow,
 } from "@/components/billing/invoice-columns";
-import { InvoiceDetailsDrawer } from "./invoice-details-drawer";
 import { PaginationControls } from "@/components/ui/pagination-controls";
+import { InvoiceDetailsDialog } from "@/components/billing/invoice-details-dialog";
 
 export function BillingInvoicesTable() {
-  const [selectedInvoice, setSelectedInvoice] = useState<BillingInvoiceRow | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [invoiceDetailsDialog, setInvoiceDetailsDialog] = useState<{
+    open: boolean;
+    invoice: BillingInvoiceRow | null;
+  }>({
+    open: false,
+    invoice: null,
+  });
 
   const { data: invoicesData, isLoading } = useBillingInvoices({
     page,
@@ -23,16 +28,28 @@ export function BillingInvoicesTable() {
     meta: { errorMessage: "Failed to load invoices." },
   });
 
-  const handleOpenDrawer = (row: BillingInvoiceRow) => {
-    setSelectedInvoice(row);
-    setIsDrawerOpen(true);
-  };
-
   const invoices = invoicesData?.data ?? [];
   const pagination = invoicesData?.pagination;
 
-  // Create columns with callback
-  const columnsWithActions = billingInvoiceColumns(handleOpenDrawer);
+  // Create columns
+  const columnsWithActions = billingInvoiceColumns();
+
+  // Set default column visibility - only show specified columns by default
+  const defaultColumnVisibility = useMemo(() => ({
+    // Hidden by default
+    projectNo: false,
+    contractor: false,
+    tonsBilledAmount: false,
+    coPrice: false,
+    coBilledAmount: false,
+    // Visible by default (these have enableHiding: false or are explicitly shown)
+    // invoiceNo, projectName, billedTonnage, unitPriceOrLumpSum, billedHoursCo, totalAmountBilled, actions
+  }), []);
+
+  // Handler for viewing invoice details
+  const handleViewInvoiceDetails = useCallback((invoice: BillingInvoiceRow) => {
+    setInvoiceDetailsDialog({ open: true, invoice });
+  }, []);
 
   return (
     <>
@@ -41,8 +58,10 @@ export function BillingInvoicesTable() {
         data={invoices}
         columns={columnsWithActions}
         exportFilename="billing-invoices.csv"
-        onRowClick={handleOpenDrawer}
         isLoading={isLoading}
+        defaultColumnVisibility={defaultColumnVisibility}
+        onRowClick={handleViewInvoiceDetails} // Click anywhere on row to view details
+        onViewDetails={handleViewInvoiceDetails} // Also keep for the View Details button
         pagination={
           pagination ? (
             <PaginationControls
@@ -59,10 +78,13 @@ export function BillingInvoicesTable() {
           ) : undefined
         }
       />
-      <InvoiceDetailsDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        invoice={selectedInvoice}
+
+      <InvoiceDetailsDialog
+        open={invoiceDetailsDialog.open}
+        onOpenChange={(open) =>
+          setInvoiceDetailsDialog((prev) => ({ ...prev, open }))
+        }
+        invoice={invoiceDetailsDialog.invoice}
       />
     </>
   );
