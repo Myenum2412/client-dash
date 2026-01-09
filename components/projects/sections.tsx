@@ -199,20 +199,28 @@ export const drawingsColumns = (): ColumnDef<DrawingsRow>[] => {
     enableHiding: true,
   },
   {
-    accessorKey: "totalWeightTons",
-    header: "Total Weight (Tons)",
-    cell: ({ row }) => (
-      <div className="font-medium">
-        {Number(row.getValue("totalWeightTons")).toFixed(1)}
+    id: "Total Weight",
+    header: () => (
+      <div className="w-full">
+        <div className="text-center font-semibold border-b pb-1 mb-1">Total Weight</div>
+        <div className="flex items-center justify-around gap-2">
+          <div className="flex-1 text-center text-xs">Tons</div>
+          <div className="flex-1 text-center text-xs">Lbs</div>
+        </div>
       </div>
     ),
+    cell: ({ row }) => {
+      const tons = Number(row.original.totalWeightTons || 0).toFixed(1);
+      const lbs = Number(row.original.totalWeightTons || 0) * 2000;
+      return (
+        <div className="flex items-center justify-around gap-2 w-full">
+          <div className="flex-1 text-center text-sm font-medium">{tons}</div>
+          <div className="flex-1 text-center text-sm font-medium">{lbs}</div>
+        </div>
+      );
+    },
     meta: { align: "center" },
-  },
-  {
-    accessorKey: "latestSubmittedDate",
-    header: "Latest Submitted Date",
-    cell: ({ row }) => <div>{formatDate(row.getValue("latestSubmittedDate"))}</div>,
-    meta: { align: "center" },
+    enableSorting: false,
   },
   {
     accessorKey: "releaseStatus",
