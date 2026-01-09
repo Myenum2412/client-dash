@@ -60,6 +60,18 @@ export function SubmissionsTable() {
     setSubmissionDetailsDialog({ open: true, submission });
   }, []);
 
+  // Add state for expand/collapse
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  // Handler for toggling expand/collapse
+  const handleToggle = useCallback(() => {
+    console.log('[SubmissionsTable] Toggle clicked, current state:', isExpanded);
+    setIsExpanded(prev => {
+      console.log('[SubmissionsTable] New state:', !prev);
+      return !prev;
+    });
+  }, [isExpanded]);
+
   return (
     <>
     <SectionTableCard
@@ -71,6 +83,8 @@ export function SubmissionsTable() {
       isLoading={isLoading}
         onRowClick={handleViewSubmissionDetails}
         onViewDetails={handleViewSubmissionDetails}
+        isExpanded={isExpanded}
+        onToggle={handleToggle}
         headerAction={
           <SubmissionsDateFilter
             date={selectedDate}

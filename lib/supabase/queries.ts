@@ -245,20 +245,32 @@ export async function updateInvoiceStatus(supabase: SupabaseClientType, id: stri
 // Submissions Queries
 // ============================================================================
 
-export async function getSubmissions(supabase: SupabaseClientType) {
-  const { data, error } = await supabase
+export async function getSubmissions(supabase: SupabaseClientType, page = 1, pageSize = 20) {
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
+  const { data, error, count } = await supabase
     .from('submissions')
     .select(`
       *,
       projects:project_id (
+        id,
         project_number,
-        project_name
+        project_name,
+        client_name
       )
-    `)
+    `, { count: 'exact' })
     .order('submission_date', { ascending: false })
+    .range(from, to)
 
   if (error) throw error
-  return data
+  
+  return {
+    data: data || [],
+    count: count || 0,
+    page,
+    pageSize
+  }
 }
 
 export async function getSubmissionsByProject(supabase: SupabaseClientType, projectId: string) {

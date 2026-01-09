@@ -402,6 +402,11 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
   
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[SectionTableCard] isExpanded:', isExpanded, 'onToggle:', typeof onToggle);
+  }, [isExpanded, onToggle]);
+  
   // Automatically show more rows when searching
   React.useEffect(() => {
     try {
@@ -513,7 +518,11 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
 
             {/* Expand/Collapse Chevron */}
             <button
-              onClick={onToggle}
+              onClick={(e) => {
+                console.log('[SectionTableCard] Chevron button clicked, isExpanded:', isExpanded);
+                e.stopPropagation();
+                onToggle?.();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
