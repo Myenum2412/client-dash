@@ -112,10 +112,7 @@ export function BillingOverview() {
 
   return (
     <Card className="w-full shadow-lg overflow-hidden relative">
-      <OptimizedBackgroundImage 
-        src="/image/section-bg.png"
-        opacity={0.1}
-      />
+    <div className="absolute inset-0 bg-section opacity-70 " />
       <CardHeader className="relative border-b shrink-0 bg-emerald-50/70 p-6">
         <div className="flex items-center justify-between gap-4 w-full">
           <CardTitle className="text-lg font-semibold text-emerald-900 shrink-0">Billing Overview</CardTitle>

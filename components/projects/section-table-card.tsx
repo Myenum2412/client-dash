@@ -520,12 +520,12 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
                   onToggle?.();
                 }
               }}
-              className="p-1.5 hover:bg-emerald-100 rounded-md transition-all duration-200 shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+              className="p-1.5 hover:bg-emerald-100 rounded-md transition-all duration-200 shrink-0  group"
               aria-expanded={isExpanded}
               aria-label={isExpanded ? "Collapse card" : "Expand card"}
             >
               <ChevronDown
-                className={`h-5 w-5 text-emerald-900 transition-transform duration-300 ease-in-out ${
+                className={`h-5 w-5 text-emerald-900 transition-transform duration-300 ease-in-out border-2 border-emerald-900  p-1 ${
                   isExpanded ? "rotate-180" : "rotate-0"
                 } group-hover:scale-110`}
               />
