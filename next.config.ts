@@ -1,182 +1,194 @@
 import type { NextConfig } from "next";
-import withPWA from '@ducanh2912/next-pwa';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb', // Increase limit to 10MB for image uploads
-    },
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+
+  // Optimize images
+  images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
   },
-  images:{
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '*',
-      },
+
+  // Compression
+  compress: true,
+
+  // Note: swcMinify is enabled by default in Next.js 16, no need to specify
+
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@tanstack/react-table",
+      "recharts",
+      "date-fns",
     ],
   },
-  // Disable static optimization for pages using IndexedDB
-  eslint: {
-    ignoreDuringBuilds: true, // Ignore ESLint warnings during build
+
+  // Turbopack configuration (Next.js 16 uses Turbopack by default)
+  // Set empty config to use Turbopack, or use webpack for legacy support
+  turbopack: {},
+  
+  // Suppress source map warnings in development
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  
+  // Suppress console warnings for source maps
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+
+  // Webpack optimizations (fallback for --webpack flag)
+  webpack: (config, { isServer, dev }) => {
+    // Suppress source map warnings from third-party libraries
+    if (dev) {
+      config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
+        {
+          module: /node_modules\/@supabase/,
+          message: /Invalid source map/,
+        },
+        {
+          message: /sourceMapURL could not be parsed/,
+        },
+      ];
+    }
+    
+    // Production optimizations
+    if (!dev && !isServer) {
+      // Enable tree shaking
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+      };
+    }
+
+    // Optimize bundle splitting
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: "all",
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // Vendor chunk for large libraries
+          vendor: {
+            name: "vendor",
+            chunks: "all",
+            test: /node_modules/,
+            priority: 20,
+          },
+          // PDF.js in separate chunk (large library)
+          pdfjs: {
+            name: "pdfjs",
+            test: /[\\/]node_modules[\\/](pdfjs-dist|pdf-lib)[\\/]/,
+            chunks: "all",
+            priority: 30,
+          },
+          // React Query in separate chunk
+          reactQuery: {
+            name: "react-query",
+            test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
+            chunks: "all",
+            priority: 25,
+          },
+          // Radix UI components
+          radix: {
+            name: "radix-ui",
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            chunks: "all",
+            priority: 15,
+          },
+          // Common chunk for shared code
+          common: {
+            name: "common",
+            minChunks: 2,
+            chunks: "all",
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+    }
+
+    return config;
+  },
+
+  // Headers for caching and performance
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+      {
+        source: "/assets/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+      {
+        source: "/manifest.webmanifest",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400",
+          },
+          {
+            key: "Content-Type",
+            value: "application/manifest+json",
+          },
+        ],
+      },
+    ];
   },
 };
 
-const config = withPWA({
-  dest: "public",
-  disable: false,
-  register: true,
-  workboxOptions: {
-    disableDevLogs: true,
-    skipWaiting: true,
-    clientsClaim: true,
-    // Fix PWA caching - exclude only specific files, not everything
-    exclude: [
-      /\.map$/,
-      /manifest$/,
-      /\.DS_Store$/,
-      /_next\/static\/.*\.js\.map$/,
-    ],
-    runtimeCaching: [
-      // Add Supabase API caching
-      {
-        urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'supabase-api',
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 5 * 60, // 5 minutes
-          },
-        },
-      },
-      {
-        urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'google-fonts-webfonts',
-          expiration: {
-            maxEntries: 4,
-            maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-          },
-        },
-      },
-      {
-        urlPattern: /^https:\/\/fonts\.(?:googleapis)\.com\/.*/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'google-fonts-stylesheets',
-          expiration: {
-            maxEntries: 4,
-            maxAgeSeconds: 7 * 24 * 60 * 60, // 1 week
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-font-assets',
-          expiration: {
-            maxEntries: 4,
-            maxAgeSeconds: 7 * 24 * 60 * 60, // 1 week
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-image-assets',
-          expiration: {
-            maxEntries: 32, // Reduced from 64
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\/_next\/image\?url=.+$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'next-image',
-          expiration: {
-            maxEntries: 32, // Reduced from 64
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:mp3|wav|ogg)$/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'static-audio-assets',
-          expiration: {
-            maxEntries: 16, // Reduced from 32
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:js)$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-js-assets',
-          expiration: {
-            maxEntries: 32, // Reduced from 48
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:css|less)$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-style-assets',
-          expiration: {
-            maxEntries: 16, // Reduced from 32
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'next-data',
-          expiration: {
-            maxEntries: 16, // Reduced from 32
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /\/api\/.*$/i,
-        handler: 'NetworkFirst',
-        method: 'GET',
-        options: {
-          cacheName: 'apis',
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 8, // Reduced from 16
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-      {
-        urlPattern: /.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'others',
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 16, // Reduced from 32
-            maxAgeSeconds: 24 * 60 * 60, // 1 day
-          },
-        },
-      },
-    ],
-  },
-})(nextConfig);
-
-export default config;
+export default nextConfig;
