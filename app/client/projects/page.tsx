@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
-import { AppSidebar } from "@/components/app-sidebar";
-import type { SidebarUser } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/app/top-header";
 import { ProjectCardsAccordion } from "@/components/projects/project-cards-accordion";
 import {
   ProjectOverview,
   type ProjectOverviewData,
 } from "@/components/projects/project-overview";
-import { ProjectMaterialListManagement } from "@/components/projects/material-list-management";
 import { LocalStorageDataDisplay } from "@/components/projects/local-storage-data-display";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth/server";
-import Image from "next/image";
 import { ProjectsPageClient } from "@/components/projects/projects-page-client";
 import { ProjectSearchResults } from "@/components/projects/project-search-results";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -95,35 +90,17 @@ export default async function ProjectsPage({
     releaseStatus: project.release_status ?? null,
   };
 
-  const displayName =
-    (typeof user.user_metadata?.full_name === "string" &&
-      user.user_metadata.full_name) ||
-    (user.email ? user.email.split("@")[0] : "User");
-
-  const avatar =
-    (typeof user.user_metadata?.avatar_url === "string" &&
-      user.user_metadata.avatar_url) ||
-    "/image/profile.jpg";
-
-  const sidebarUser: SidebarUser = {
-    name: displayName,
-    email: user.email ?? "",
-    avatar,
-  };
-
   return (
-    <SidebarProvider>
-      <AppSidebar user={sidebarUser} />
-      <SidebarInset>
-        <TopHeader
-          section="Projects"
-          page="All Projects"
-          search={{
-            placeholder: "Search projects...",
-            action: "/projects",
-            name: "q",
-          }}
-        />
+    <>
+      <TopHeader
+        section="Projects"
+        page="All Projects"
+        search={{
+          placeholder: "Search projects...",
+          action: "/client/projects",
+          name: "q",
+        }}
+      />
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {/* Show search results if query exists */}
           {searchQuery && (
@@ -171,7 +148,6 @@ export default async function ProjectsPage({
             </>
           )}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </>
   );
 }

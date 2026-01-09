@@ -24,7 +24,7 @@ export default async function LoginPage({
   } = await supabase.auth.getUser()
 
   if (user) {
-    redirect("/dashboard")
+    redirect("/client/dashboard");
   }
 
   async function signIn(formData: FormData) {
@@ -34,8 +34,8 @@ export default async function LoginPage({
 
     const email = String(formData.get("email") ?? "").trim()
     const password = String(formData.get("password") ?? "").trim()
-    const redirectToRaw = String(formData.get("redirectTo") ?? "/dashboard")
-    const redirectTo = redirectToRaw.startsWith("/") ? redirectToRaw : "/dashboard"
+    const redirectToRaw = String(formData.get("redirectTo") ?? "/client/dashboard")
+    const redirectTo = redirectToRaw.startsWith("/") ? redirectToRaw : "/client/dashboard"
 
     // Validate input
     if (!email || !password) {
@@ -87,7 +87,7 @@ export default async function LoginPage({
 
   const redirectedFromParam = sp.redirectedFrom
   const redirectTo =
-    typeof redirectedFromParam === "string" ? redirectedFromParam : "/dashboard"
+    typeof redirectedFromParam === "string" ? redirectedFromParam : "/client/dashboard"
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">

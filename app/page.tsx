@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation"
+import { redirect } from "next/navigation";
 
-import { getUser } from "@/lib/auth/server"
+import { getUser } from "@/lib/auth/server";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  // ********** Murugan **********
-  const user = await getUser()
-  redirect(user ? "/dashboard" : "/login")
+  const user = await getUser();
+  redirect(user ? "/client/dashboard" : "/login");
 }

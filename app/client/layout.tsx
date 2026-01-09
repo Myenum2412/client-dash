@@ -1,16 +1,28 @@
+import type { Metadata } from "next";
 import { AppSidebar } from "@/components/app-sidebar";
 import type { SidebarUser } from "@/components/app-sidebar";
-import { TopHeader } from "@/components/app/top-header";
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { requireUser } from "@/lib/auth/server";
-import { ChatInterface } from "@/components/chat-interface";
 
-export default async function ChatPage() {
+export const metadata: Metadata = {
+  title: {
+    default: "Proultima",
+    template: "%s | Proultima",
+  },
+};
+
+export default async function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Single authentication check for all client routes
   const user = await requireUser();
 
+  // Extract user metadata once for the entire layout
   const displayName =
     (typeof user.user_metadata?.full_name === "string" &&
       user.user_metadata.full_name) ||
@@ -30,16 +42,9 @@ export default async function ChatPage() {
   return (
     <SidebarProvider>
       <AppSidebar user={sidebarUser} />
-      <SidebarInset className="flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <TopHeader
-          section="Chat"
-          page="Messages"
-          search={{ placeholder: "Search messages...", action: "/chat", name: "q" }}
-        />
-        <ChatInterface />
+      <SidebarInset>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
-

@@ -33,38 +33,38 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/client/dashboard",
       icon: SpaceDashboardIcon,
       isActive: true,
     },
     {
       title: "Projects",
-      url: "/projects",
+      url: "/client/projects",
       icon: AccountTreeIcon,
     },
     {
       title: "Submissions",
-      url: "/submissions",
+      url: "/client/submissions",
       icon: CloudUploadIcon,
     },
     {
       title: "Billing",
-      url: "/billing",
+      url: "/client/billing",
       icon: DriveFolderUploadIcon,
     },
     {
       title: "Chat",
-      url: "/chat",
+      url: "/client/chat",
       icon: QuestionAnswerIcon,
     },
     {
       title: "Payers",
-      url: "/payers",
+      url: "/client/payers",
       icon: PeopleIcon,
     },
     {
       title: "Ai chat",
-      url: "/ai-chat",
+      url: "/client/ai-chat",
       icon: SmartToyIcon,
     }
   ],
