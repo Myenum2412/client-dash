@@ -18,7 +18,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
 } from "@/components/ui/sidebar"
 import Image from "next/image"
 
@@ -75,7 +74,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: SidebarUser }) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...props} >
       <SidebarHeader>
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
@@ -100,7 +99,6 @@ export function AppSidebar({
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }

@@ -402,6 +402,11 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
   
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[SectionTableCard] isExpanded:', isExpanded, 'onToggle:', typeof onToggle);
+  }, [isExpanded, onToggle]);
+  
   // Automatically show more rows when searching
   React.useEffect(() => {
     try {
@@ -513,19 +518,23 @@ function SectionTableCardInner<TData extends Record<string, unknown>, TValue>({
 
             {/* Expand/Collapse Chevron */}
             <button
-              onClick={onToggle}
+              onClick={(e) => {
+                console.log('[SectionTableCard] Chevron button clicked, isExpanded:', isExpanded);
+                e.stopPropagation();
+                onToggle?.();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onToggle?.();
                 }
               }}
-              className="p-1.5 hover:bg-emerald-100 rounded-md transition-all duration-200 shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+              className="p-1.5 hover:bg-emerald-100 rounded-md transition-all duration-200 shrink-0  group"
               aria-expanded={isExpanded}
               aria-label={isExpanded ? "Collapse card" : "Expand card"}
             >
               <ChevronDown
-                className={`h-5 w-5 text-emerald-900 transition-transform duration-300 ease-in-out ${
+                className={`h-5 w-5 text-emerald-900 transition-transform duration-300 ease-in-out border-2 border-emerald-900  p-1 ${
                   isExpanded ? "rotate-180" : "rotate-0"
                 } group-hover:scale-110`}
               />
